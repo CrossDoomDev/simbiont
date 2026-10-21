@@ -122,7 +122,7 @@ func _gait_continuity_checks() -> void:
 		host.manual_aim = [Vector2.RIGHT,Vector2.UP,Vector2.LEFT,Vector2.DOWN][tick % 4]
 		var previous_clock: float = host.leg_clock
 		host._physics_process(1.0 / 60.0)
-		phase_preserved = phase_preserved and is_equal_approx(host.leg_clock,fposmod(previous_clock+1.0/60.0,0.25)) and host.legs_anim.animation == "walk_0"
+		phase_preserved = phase_preserved and is_equal_approx(host.leg_clock,fposmod(previous_clock+1.0/60.0,0.5)) and host.legs_anim.animation == "walk_0"
 		await physics_frame
 		await process_frame
 		second_step_seen = second_step_seen or host.legs_anim.frame == 1

@@ -15,6 +15,7 @@ var cooldown := 0.0
 var skill_slow_remaining := 0.0
 var skill_slow_ratio := 1.0
 const HOST_ATTACK_HOLD := 1.0
+const HOST_LEG_FRAME_SECONDS := 0.25
 var attack_pose_remaining := 0.0
 var shot_clock := 0.0
 var age := 0.0
@@ -179,10 +180,10 @@ func _update_host_visual(delta: float) -> void:
 	# change their phase, animation direction, or playback state.
 	if moving:
 		leg_facing = _facing(velocity)
-		leg_clock = fposmod(leg_clock + delta,0.25)
+		leg_clock = fposmod(leg_clock + delta,HOST_LEG_FRAME_SECONDS * 2.0)
 		legs_anim.animation = "walk_%d" % leg_facing
 		legs_anim.pause()
-		var step: float = leg_clock * 8.0
+		var step: float = leg_clock / HOST_LEG_FRAME_SECONDS
 		legs_anim.set_frame_and_progress(int(step),fposmod(step,1.0))
 	else:
 		legs_anim.animation = "idle_%d" % leg_facing

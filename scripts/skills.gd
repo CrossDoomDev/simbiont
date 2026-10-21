@@ -3,6 +3,8 @@ extends Node
 ## Volatile combat energy is independent of permanent upgrade resources.
 const Effect = preload("res://scripts/skill_effect.gd")
 const MAX_ENERGY := 100.0
+const ENERGY_PER_DAMAGE := 0.1125
+const ENERGY_PER_KILL := 1.5
 const DEFINITIONS: Array[Dictionary] = [
 	{"name":"Нейроволна","key":"1","cost":25.0,"cooldown":5.0,"description":"Удар вокруг носителя: 2,5× урона, краткое подавление обычных врагов.","color":Color("94f4bd")},
 	{"name":"Ядовитые споры","key":"2","cost":35.0,"cooldown":9.0,"description":"Облако у прицела на 4 с. Наносит урон каждые 0,5 с и замедляет обычных врагов.","color":Color("b8d95d")},
@@ -37,7 +39,7 @@ func _physics_process(delta: float) -> void:
 
 func gain_damage(actual_damage: float, killed: bool) -> void:
 	if game.mode == "mission" and not game.modal and actual_damage > 0.0 and is_finite(actual_damage):
-		energy = clampf(energy + actual_damage*0.45 + (6.0 if killed else 0.0),0.0,MAX_ENERGY)
+		energy = clampf(energy + actual_damage*ENERGY_PER_DAMAGE + (ENERGY_PER_KILL if killed else 0.0),0.0,MAX_ENERGY)
 
 func failure_reason(index: int) -> String:
 	if index < 0 or index >= DEFINITIONS.size():
