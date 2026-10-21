@@ -34,3 +34,25 @@ for row in range(5):
         assert previous != digest, ("duplicate skill animation frame",row,col)
         previous=digest
 print("SKILL_ART_OK: 20 nonempty generated animation frames with transparency")
+
+# Generated art stays byte-identical to its saved original. Only native atlas
+# slicing/scaling is performed by the game; there is no procedural replacement.
+import hashlib
+import json
+root = art.parents[1]
+manifest = json.loads((root / "assets/art/evolution/manifest.json").read_text())
+for entry in manifest["files"]:
+    runtime = root / entry["file"]
+    source = root / entry["source"]
+    assert hashlib.sha256(runtime.read_bytes()).hexdigest() == entry["sha256"]
+    assert runtime.read_bytes() == source.read_bytes()
+    asset = Image.open(runtime).convert("RGBA")
+    assert list(asset.size) == entry["size"]
+    columns, rows = entry["grid"]
+    for row in range(rows):
+        for column in range(columns):
+            cell = asset.crop((column*asset.width//columns,row*asset.height//rows,(column+1)*asset.width//columns,(row+1)*asset.height//rows))
+            assert cell.getbbox() is not None
+    if entry["key"] != "backdrop":
+        assert asset.getchannel("A").getextrema() == (0,255)
+print("EVOLUTION_ART_OK: original generated frames, background, three doors and twelve crop stages")

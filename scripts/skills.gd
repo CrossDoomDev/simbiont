@@ -139,7 +139,7 @@ func spawn_effect(index: int, point: Vector2, radius: float, duration: float) ->
 
 func _targets() -> Array[Node2D]:
 	var result: Array[Node2D] = []
-	for node: Node2D in get_tree().get_nodes_in_group("enemies") + get_tree().get_nodes_in_group("nests"):
+	for node: Node2D in get_tree().get_nodes_in_group("enemies") + get_tree().get_nodes_in_group("nests") + get_tree().get_nodes_in_group("garden_lures"):
 		if is_instance_valid(node) and not node.is_queued_for_deletion() and not node.dead:
 			result.append(node)
 	return result

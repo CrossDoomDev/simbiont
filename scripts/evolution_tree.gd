@@ -1,5 +1,6 @@
 extends VBoxContainer
 ## Native graph: pan with scrollbars/touch, zoom, real prerequisite edges and ranks.
+const Art = preload("res://scripts/evolution_art.gd")
 const BioSkin = preload("res://scripts/ui_skin.gd")
 var ui: CanvasLayer
 var ship := false
@@ -27,6 +28,9 @@ var help_label: Label
 var compact := false
 var graph_offset := Vector2.ZERO
 var dragging := false
+var zoom_pending := false
+var zoom_world := Vector2.ZERO
+var zoom_pointer := Vector2.ZERO
 const NODE_SIZE := Vector2(178,88)
 
 class Veins extends Control:
@@ -67,10 +71,10 @@ func _ready() -> void:
 	var legend: Label = ui.paragraph("ВЕТВИ КОРАБЛЯ" if ship else "ДРЕВО МУТАЦИЙ",16)
 	legend.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	toolbar.add_child(legend)
-	toolbar.add_child(_small_button("−",func(): set_zoom(zoom-0.1)))
+	toolbar.add_child(_small_button("−",func(): zoom_at(zoom/1.15,scroll.get_global_rect().get_center())))
 	zoom_label = ui.label("",14)
 	toolbar.add_child(zoom_label)
-	toolbar.add_child(_small_button("+",func(): set_zoom(zoom+0.1)))
+	toolbar.add_child(_small_button("+",func(): zoom_at(zoom*1.15,scroll.get_global_rect().get_center())))
 	toolbar.add_child(_small_button("Обзор",fit))
 	body = BoxContainer.new()
 	body.add_theme_constant_override("separation",16)
@@ -78,8 +82,17 @@ func _ready() -> void:
 	add_child(body)
 	graph_panel = PanelContainer.new()
 	graph_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	graph_panel.add_theme_stylebox_override("panel",_frame(Color("22152c"),Color("63416e")))
+	graph_panel.add_theme_stylebox_override("panel",_panel_skin())
 	body.add_child(graph_panel)
+	var background := TextureRect.new()
+	background.name = "GeneratedNervousTissue"
+	background.texture = Art.BACKDROP
+	background.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	background.modulate = Color(0.48,0.43,0.52,1)
+	graph_panel.add_child(background)
 	scroll = ScrollContainer.new()
 	scroll.name = "TreeScroll"
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
@@ -92,6 +105,7 @@ func _ready() -> void:
 	for id: String in configs:
 		var b := Button.new()
 		b.name = id
+		b.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		b.clip_text = true
 		b.add_theme_font_size_override("font_size",1)
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -107,7 +121,7 @@ func _ready() -> void:
 		node_labels[id] = caption
 		node_buttons[id] = b
 	detail_panel = PanelContainer.new()
-	detail_panel.add_theme_stylebox_override("panel",_frame(Color("211529"),Color("714377")))
+	detail_panel.add_theme_stylebox_override("panel",_panel_skin())
 	body.add_child(detail_panel)
 	var detail_shell := VBoxContainer.new()
 	detail_shell.add_theme_constant_override("separation",12)
@@ -134,7 +148,7 @@ func _ready() -> void:
 	purchase.name = "BuyMutation"
 	detail_shell.add_child(price)
 	detail_shell.add_child(purchase)
-	help_label = ui.paragraph("Связи требуют указанных рангов. Колесо / жест — прокрутка · СКМ — сдвиг · + / − — масштаб.",13)
+	help_label = ui.paragraph("Связи требуют указанных рангов. Колесо — масштаб у курсора · зажать СКМ — перетаскивание · жест — прокрутка.",13)
 	add_child(help_label)
 	move_child(help_label,1)
 	resized.connect(_arrange)
@@ -149,39 +163,68 @@ func _focus_selected() -> void:
 func _input(event: InputEvent) -> void:
 	if not is_visible_in_tree() or not is_instance_valid(scroll):
 		return
-	var inside := scroll.get_global_rect().has_point(get_global_mouse_position())
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_MIDDLE:
-		dragging = event.pressed and inside
-		if inside:
+	var pointer := get_global_mouse_position()
+	if event is InputEventMouse or event is InputEventGesture:
+		pointer = event.position
+	var inside := scroll.get_global_rect().has_point(pointer)
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_MIDDLE:
+			dragging = event.pressed and inside
+			if inside:
+				get_viewport().set_input_as_handled()
+		elif inside and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+			var direction := 1.0 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -1.0
+			zoom_at(zoom*pow(1.15,direction*maxf(1.0,event.factor)),pointer)
 			get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and dragging:
+		if event.button_mask & MOUSE_BUTTON_MASK_MIDDLE == 0:
+			dragging = false
+			return
 		scroll.scroll_horizontal -= roundi(event.relative.x)
 		scroll.scroll_vertical -= roundi(event.relative.y)
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMagnifyGesture and inside:
-		set_zoom(zoom*event.factor)
+		zoom_at(zoom*event.factor,pointer)
 		get_viewport().set_input_as_handled()
+
+func zoom_at(value: float, pointer: Vector2) -> void:
+	var local := pointer-scroll.global_position
+	if not zoom_pending:
+		zoom_world = (local+Vector2(scroll.scroll_horizontal,scroll.scroll_vertical)-graph_offset)/zoom
+		zoom_pending = true
+		call_deferred("_restore_zoom_anchor")
+	zoom_pointer = local
+	set_zoom(value)
+
+func _restore_zoom_anchor() -> void:
+	# Wait for the native scroll range to follow the resized graph.
+	if not is_inside_tree():
+		return
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	refresh()
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	scroll.scroll_horizontal = roundi(zoom_world.x*zoom+graph_offset.x-zoom_pointer.x)
+	scroll.scroll_vertical = roundi(zoom_world.y*zoom+graph_offset.y-zoom_pointer.y)
+	zoom_pending = false
+
+func _panel_skin() -> StyleBoxTexture:
+	var box := BioSkin.panel()
+	box.set_content_margin_all(20)
+	return box
 
 func _small_button(text: String, action: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
+	b.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	b.custom_minimum_size = Vector2(42,34)
 	for state: String in ["normal","hover","pressed","hover_pressed","focus","disabled"]:
-		b.add_theme_stylebox_override(state,_frame(Color("44244b") if state != "normal" else Color("28192f"),Color("8a5b92"),8))
+		b.add_theme_stylebox_override(state,Art.frame(1 if state != "normal" else 0,8))
 	b.pressed.connect(action)
 	return b
-
-func _frame(bg: Color, border: Color, pad: int = 18) -> StyleBoxFlat:
-	var box := StyleBoxFlat.new()
-	box.bg_color = bg
-	box.border_color = border
-	box.set_corner_radius_all(12)
-	box.set_border_width_all(1)
-	box.content_margin_left = pad
-	box.content_margin_right = pad
-	box.content_margin_top = pad
-	box.content_margin_bottom = pad
-	return box
 
 func _arrange() -> void:
 	if not is_instance_valid(body):
@@ -216,7 +259,7 @@ func _node_title(text: String) -> String:
 	var result := ""
 	var line := ""
 	for word: String in text.replace("Венец: ","✦ ").split(" "):
-		if line.length()+word.length() > 17:
+		if line.length()+word.length() > 14:
 			result += line.strip_edges()+"\n"
 			line = ""
 		line += word+" "
@@ -244,7 +287,7 @@ func refresh() -> void:
 		b.position = data["position"]*zoom+graph_offset
 		b.size = NODE_SIZE*zoom
 		var caption: Label = node_labels[id]
-		caption.position = Vector2(3,2)
+		caption.position = Vector2(14,6)*zoom
 		caption.text = (_node_title(data["name"]) if zoom >= 0.5 else str(data["name"]).left(13))+"\n"+str(level)+" / "+str(data["max_level"])+( "  ◆" if level == int(data["max_level"]) else ("  ◇" if available else "  ·"))
 		if zoom < 0.45:
 			caption.text = "%d/%d" % [level,data["max_level"]]
@@ -252,12 +295,10 @@ func refresh() -> void:
 		caption.add_theme_color_override("font_color",color.lightened(0.2) if available or level > 0 else Color("97849f"))
 		b.tooltip_text = data["name"]+"\n"+data["description"]
 		for state: String in ["normal","hover","pressed","hover_pressed","focus","disabled"]:
-			var tint := Color("3b2547") if state != "normal" or id == selected else (Color("292333") if level > 0 else Color("1a1423"))
-			var box := _frame(tint,color if id == selected else Color(color,0.5 if available else 0.2),3)
-			box.set_border_width_all(2 if id == selected else 1)
-			b.add_theme_stylebox_override(state,box)
+			var index := 1 if id == selected or state in ["hover","pressed","hover_pressed","focus"] else (3 if level == int(data["max_level"]) else (0 if available else 2))
+			b.add_theme_stylebox_override(state,Art.frame(index,2))
 		b.size = NODE_SIZE*zoom
-		caption.size = b.size-Vector2(6,4)
+		caption.size = b.size-Vector2(28,12)*zoom
 	graph.queue_redraw()
 	var node: Dictionary = configs[selected]
 	var rank := int(levels.get(selected,0))

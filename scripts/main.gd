@@ -14,6 +14,8 @@ var run_loot: Array = [0,0,0,0]
 var run_time := 0.0
 var run_id := ""
 var run_protocol := "normal"
+var run_lure := ""
+var lure_spawned := false
 var nodes_destroyed := 0
 var boss_spawned := false
 var boss_defeated := false
@@ -61,6 +63,8 @@ func _setup_world(context: String) -> void:
 		remove_child(world)
 		world.queue_free()
 	near_organ = null
+	run_lure = ""
+	lure_spawned = false
 	pending_nest_enemies.clear()
 	mode = context
 	var scene_path := "res://scenes/hub.tscn" if context == "ship" else ("res://scenes/forest.tscn" if mission_id == 0 else "res://scenes/swamp.tscn")
@@ -200,12 +204,16 @@ func interact() -> void:
 		"heart": ui.open_heart()
 		"feeding": ui.open_upgrades(true)
 		"storage": ui.open_storage()
-		"archive": ui.open_archive()
+		"archive": ui.open_garden()
 		"refinery": ui.open_refinery()
 		"quarantine": ui.open_quarantine()
 
 func start_mission(id: int) -> void:
 	if transitioning or not Progress.mission_unlocked(id):
+		return
+	var lure: Dictionary = Progress.launch_lure()
+	if not lure["ok"]:
+		ui.toast("Не удалось сохранить приманку. Повторите отправление.")
 		return
 	mission_id = id
 	run_protocol = Progress.protocol
@@ -214,6 +222,7 @@ func start_mission(id: int) -> void:
 	ui.page = ""
 	await _fade(1)
 	_setup_world("mission")
+	run_lure = str(lure["strain"])
 	run_loot = [0,0,0,0]
 	run_time = 0
 	nodes_destroyed = 0
@@ -254,7 +263,7 @@ func finish_mission(success: bool) -> void:
 	transitioning = true
 	set_modal(true)
 	var earned: Array = Progress.credited_loot(run_loot,success,run_protocol)
-	if not Progress.deposit_run(run_loot,success,run_id,run_protocol):
+	if not Progress.deposit_run(run_loot,success,run_id,run_protocol,nodes_destroyed):
 		transitioning = false
 		ui.toast("Не удалось сохранить добычу. Повторите возвращение.")
 		return
@@ -434,6 +443,8 @@ func _enemy_died(enemy: BioActor) -> void:
 	burst(enemy.position,Color("bb617b"),8)
 	var loot: Array = GameData.ENEMIES[enemy.kind]["loot"]
 	_drop_loot(enemy.position,loot)
+	if enemy.has_meta("garden_reward"):
+		_drop_loot(enemy.position,enemy.get_meta("garden_reward"))
 	if enemy.kind == "guardian":
 		if bool(enemy.get_meta("mission_guardian", false)):
 			bosses_defeated += 1
@@ -446,7 +457,7 @@ func _enemy_died(enemy: BioActor) -> void:
 		if mode == "mission" and not remaining:
 			Audio.set_context("mission")
 		Audio.play_sfx("objective")
-		ui.toast("Страж уничтожен. Органическое ядро выпало на землю.")
+		ui.toast("Хищник ксеносада повержен! Подберите редкую добычу." if enemy.has_meta("garden_reward") else "Страж уничтожен. Органическое ядро выпало на землю.")
 		if objective_complete():
 			ui.toast("Цель выполнена. Вернуться: Esc → Завершить миссию.")
 
@@ -495,6 +506,8 @@ func nest_destroyed(nest: BioNest) -> void:
 		ui.toast("Цель выполнена. Продолжайте сбор или вернитесь через Esc.")
 	else:
 		ui.toast("Гнездовой узел уничтожен  ·  %d / 3" % nodes_destroyed)
+	if nodes_destroyed == 1 and run_lure != "":
+		_spawn_garden_lure()
 
 func _host_died(_actor: BioActor) -> void:
 	Audio.play_sfx("death")
@@ -635,3 +648,35 @@ func _end_verification(exit_code: int) -> void:
 	shutdown.tween_callback(queue_free)
 	shutdown.tween_interval(0.3)
 	shutdown.tween_callback(func(): tree.quit(exit_code))
+
+func _spawn_garden_lure() -> void:
+	if lure_spawned or not GardenData.CULTURES.has(run_lure):
+		return
+	for attempt: int in 100:
+		var point := Vector2(1300,960)+Vector2(rng.randf_range(-500,500),rng.randf_range(-450,450))
+		if not world.is_walkable(point,65) or point.distance_to(player.position) < 180:
+			continue
+		var clear := true
+		for nest: Node2D in get_tree().get_nodes_in_group("nests"):
+			if nest.position.distance_to(point) < 140:
+				clear = false
+		if not clear:
+			continue
+		var lure := GardenLure.new()
+		lure.game = self
+		lure.strain = run_lure
+		lure.position = point
+		world.entities.add_child(lure)
+		lure_spawned = true
+		ui.toast("Ксеносад пустил приманку. Отметка на миникарте — необязательная охота за добычей.")
+		return
+
+func open_garden_lure(strain: String, point: Vector2) -> void:
+	if mode != "mission" or not GardenData.CULTURES.has(strain):
+		return
+	var guardian := spawn_enemy("guardian",point)
+	guardian.max_hp *= 1.2
+	guardian.hp = guardian.max_hp
+	guardian.set_meta("garden_reward",GardenData.CULTURES[strain]["hunt"].duplicate())
+	guardian.modulate = Color(GardenData.CULTURES[strain]["color"]).lightened(0.2)
+	ui.toast("На приманку пришёл хищник. Победите его и подберите дополнительную добычу!")

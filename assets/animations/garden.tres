@@ -1,0 +1,117 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/art/evolution/garden.png" id="1_0rvuf"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_t054t"]
+atlas = ExtResource("1_0rvuf")
+region = Rect2(0, 723, 362, 363)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kvbpy"]
+atlas = ExtResource("1_0rvuf")
+region = Rect2(362, 723, 362, 363)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hvq2c"]
+atlas = ExtResource("1_0rvuf")
+region = Rect2(724, 723, 337, 363)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_eg1kt"]
+atlas = ExtResource("1_0rvuf")
+region = Rect2(1061, 723, 387, 363)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6c46d"]
+atlas = ExtResource("1_0rvuf")
+region = Rect2(0, 362, 362, 361)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4tf6k"]
+atlas = ExtResource("1_0rvuf")
+region = Rect2(362, 362, 360, 361)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_a4phc"]
+atlas = ExtResource("1_0rvuf")
+region = Rect2(722, 362, 350, 361)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ah6ph"]
+atlas = ExtResource("1_0rvuf")
+region = Rect2(1072, 362, 376, 361)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_v6ffp"]
+atlas = ExtResource("1_0rvuf")
+region = Rect2(0, 0, 362, 362)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6dl4h"]
+atlas = ExtResource("1_0rvuf")
+region = Rect2(362, 0, 362, 362)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qnxrk"]
+atlas = ExtResource("1_0rvuf")
+region = Rect2(724, 0, 362, 362)
+filter_clip = true
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_6ddhr"]
+atlas = ExtResource("1_0rvuf")
+region = Rect2(1086, 0, 362, 362)
+filter_clip = true
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_t054t")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kvbpy")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hvq2c")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_eg1kt")
+}],
+"loop": 0,
+"name": &"core",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6c46d")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4tf6k")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_a4phc")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ah6ph")
+}],
+"loop": 0,
+"name": &"enzyme",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_v6ffp")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6dl4h")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qnxrk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_6ddhr")
+}],
+"loop": 0,
+"name": &"vascular",
+"speed": 1.0
+}]

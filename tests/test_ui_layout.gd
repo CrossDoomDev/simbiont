@@ -34,6 +34,8 @@ func _run() -> void:
 	progress.save_path = "user://symbiont_ui_layout.json"
 	progress._defaults()
 	progress.bank = [999999,999999,999999,999999]
+	progress.modules.archive_door = 1
+	progress.modules.blackbox = 1
 	game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	await _settle()
@@ -51,7 +53,7 @@ func _run() -> void:
 		await _settle()
 		check(game.ui.root.size == Vector2(dimensions), "interface follows actual window size %s" % dimensions)
 		var area := Rect2(Vector2.ZERO,Vector2(dimensions))
-		for mode: String in ["title", "map", "upgrades", "modules", "settings", "storage", "heart", "pause"]:
+		for mode: String in ["title", "map", "upgrades", "modules", "settings", "storage", "heart", "pause", "garden"]:
 			match mode:
 				"title": game.ui.open_title()
 				"map": game.ui.open_map()
@@ -61,6 +63,7 @@ func _run() -> void:
 				"storage": game.ui.open_storage()
 				"heart": game.ui.open_heart()
 				"pause": game.ui.open_pause()
+				"garden": game.ui.open_garden()
 			await _settle()
 			check(_inside(game.ui.overlay_panel, area), "%s panel stays inside %s" % [mode, dimensions])
 			check(game.ui.overlay_panel.get_theme_stylebox("panel") is StyleBoxTexture, "%s uses generated stretchable chitin" % mode)

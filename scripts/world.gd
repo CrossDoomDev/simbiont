@@ -170,6 +170,16 @@ func _build_ship(rng: RandomNumberGenerator) -> void:
 		gate.definition = definition
 		gate_root.add_child(gate)
 		gates.append(gate)
+	var beds := Node2D.new()
+	beds.name = "XenogardenBeds"
+	decorations.add_child(beds)
+	for i: int in 3:
+		var plant := Sprite2D.new()
+		plant.name = "Culture"+str(i)
+		plant.position = Vector2(2285+i*135,655)
+		plant.scale = Vector2.ONE*0.24
+		plant.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		beds.add_child(plant)
 	# A branching vascular spine, visible through the heart hall. There is no
 	# decorative circular platform beneath the host.
 	var spine := Line2D.new()
@@ -232,6 +242,15 @@ func _make_organ(id: String, label: String, pos: Vector2, index: int, color: Col
 	obstacles.append(Vector3(pos.x,pos.y,circle.radius))
 
 func refresh_organs() -> void:
+	var beds := get_node_or_null("BiologicalDecorations/XenogardenBeds")
+	if beds != null:
+		for i: int in beds.get_child_count():
+			var plant := beds.get_child(i) as Sprite2D
+			plant.visible = i < Progress.garden_slots()
+			var bed: Dictionary = Progress.garden_beds[i]
+			var row := int(GardenData.CULTURES.get(bed["strain"],{}).get("row",0))
+			plant.texture = EvolutionArt.plant(row,GardenData.stage(bed))
+			plant.modulate.a = 0.4 if bed["strain"] == "" else 1.0
 	for gate: Node2D in gates:
 		gate.refresh()
 	for organ: Node2D in organs:

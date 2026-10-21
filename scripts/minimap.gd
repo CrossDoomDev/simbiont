@@ -47,6 +47,10 @@ func _draw() -> void:
 	for i in 4:
 		var x := inner.position.x+inner.size.x*float(i)/3
 		draw_line(Vector2(x,inner.position.y),Vector2(x,inner.end.y),Color(0.3,0.55,0.55,0.1),1)
+	for lure: Node2D in get_tree().get_nodes_in_group("garden_lures"):
+		var p: Vector2 = inner.position+lure.global_position/game.world.bounds.size*inner.size
+		draw_circle(p,4,Color("a8f0ce"))
+		draw_arc(p,6,0,TAU,12,Color("a8f0ce"),1)
 	for nest: Node2D in get_tree().get_nodes_in_group("nests"):
 		var p: Vector2 = inner.position+nest.global_position/game.world.bounds.size*inner.size
 		draw_circle(p,4,Color("f5839f"))

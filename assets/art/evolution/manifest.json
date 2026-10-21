@@ -1,0 +1,141 @@
+{
+  "generator": "image_gen",
+  "prompts": "assets/source/evolution/prompts.json",
+  "files": [
+    {
+      "key": "frames",
+      "file": "assets/art/evolution/frames.png",
+      "source": "assets/source/evolution/frames-generated.png",
+      "size": [
+        1860,
+        845
+      ],
+      "grid": [
+        2,
+        3
+      ],
+      "sha256": "bb9e60243f7cfc98f5091c472285c8cc9d192b6deca64dba5201eaf84c03551a",
+      "processing": "Unmodified image-generator PNG; only native Godot AtlasTexture regions and UI scaling."
+    },
+    {
+      "key": "backdrop",
+      "file": "assets/art/evolution/backdrop.png",
+      "source": "assets/source/evolution/backdrop-generated.png",
+      "size": [
+        1672,
+        941
+      ],
+      "grid": [
+        1,
+        1
+      ],
+      "sha256": "01b4dab5c6df04d045ed5c081346e06fe942ce024b717d9ba84aea59011010a0",
+      "processing": "Unmodified image-generator PNG; only native Godot AtlasTexture regions and UI scaling."
+    },
+    {
+      "key": "gates",
+      "file": "assets/art/evolution/gates.png",
+      "source": "assets/source/evolution/gates-generated.png",
+      "size": [
+        1983,
+        793
+      ],
+      "grid": [
+        1,
+        3
+      ],
+      "sha256": "420fcaf685535f4d15d9774a0912799da8e814632d2c0ba3a57f3d0ffaf7f8f2",
+      "processing": "Unmodified image-generator PNG; only native Godot AtlasTexture regions and UI scaling."
+    },
+    {
+      "key": "garden",
+      "file": "assets/art/evolution/garden.png",
+      "source": "assets/source/evolution/garden-spaced-generated.png",
+      "size": [
+        1448,
+        1086
+      ],
+      "grid": [
+        4,
+        3
+      ],
+      "sha256": "ee805120bae2e4e9d7761b2c3ca650c0d1c0a4d0bb658431768b82f8854f274e",
+      "processing": "Unmodified image-generator PNG; only native Godot AtlasTexture regions and UI scaling.",
+      "native_regions": [
+        [
+          0,
+          0,
+          362,
+          362
+        ],
+        [
+          362,
+          0,
+          362,
+          362
+        ],
+        [
+          724,
+          0,
+          362,
+          362
+        ],
+        [
+          1086,
+          0,
+          362,
+          362
+        ],
+        [
+          0,
+          362,
+          362,
+          361
+        ],
+        [
+          362,
+          362,
+          360,
+          361
+        ],
+        [
+          722,
+          362,
+          350,
+          361
+        ],
+        [
+          1072,
+          362,
+          376,
+          361
+        ],
+        [
+          0,
+          723,
+          362,
+          363
+        ],
+        [
+          362,
+          723,
+          362,
+          363
+        ],
+        [
+          724,
+          723,
+          337,
+          363
+        ],
+        [
+          1061,
+          723,
+          387,
+          363
+        ]
+      ],
+      "resource": "assets/animations/garden.tres"
+    }
+  ]
+}

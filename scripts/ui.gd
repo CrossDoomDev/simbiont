@@ -445,6 +445,8 @@ func _select_map_mission(index: int) -> void:
 	map_biome.text = data["biome"]
 	map_name.text = data["name"]
 	map_description.text = str(data["description"])+"\n\nПротокол: "+str({"normal":"Обычная вылазка","swarm":"Рой · частые волны / повышенная добыча","predator":"Хищники · крепкие враги / повышенная добыча"}.get(Progress.protocol,"Обычная вылазка"))
+	if Progress.prepared_lure != "":
+		map_description.text += "\nПриманка: "+str(GardenData.CULTURES[Progress.prepared_lure]["name"])+" · дополнительная охота после первого узла."
 	var available: bool = Progress.mission_unlocked(selected_mission)
 	map_lock.text = "Для доступа восстановите сердце корабля до II стадии."
 	map_lock.visible = not available
@@ -504,17 +506,14 @@ func open_upgrades(ship: bool = false) -> void:
 		v.add_child(paragraph("Наследие прежнего симбиоза: ранее купленные боевые бонусы корабля перенесены в постоянные гены носителя.",14))
 	v.add_child(tree)
 
-func open_archive() -> void:
-	if game.mode != "ship" or int(Progress.modules.get("archive_door",0)) == 0:
+func open_garden() -> void:
+	if game.mode != "ship" or Progress.garden_slots() == 0:
 		return
-	page = "archive"
-	var v := overlay("Архив отпечатков","Память живого корабля сохраняет ваши возвращения.",900)
-	v.add_child(paragraph("Доступно записей: %d. Разведка пещер: %s. Эхо врагов: %s." % [Progress.history_limit(),"включено" if int(Progress.modules.get("cave_echo",0)) > 0 else "не восстановлено","включено" if int(Progress.modules.get("threat_echo",0)) > 0 else "не восстановлено"],18))
-	if Progress.history.is_empty():
-		v.add_child(paragraph("Пока нет отпечатков вылазок. Вернитесь с поверхности — и память начнёт расти.",18))
-	for entry: Dictionary in Progress.history.duplicate():
-		v.add_child(paragraph(("Возвращение" if entry.get("success",false) else "Разрыв связи")+" · "+costs(entry.get("loot",[0,0,0,0])),16))
-	v.add_child(button("Развить память корабля",func(): open_upgrades(true),true))
+	page = "garden"
+	var v := overlay("Ксеносад","Выращивайте живые плоды. Накормите корабль или заманите редкого хищника на поверхность.",1200)
+	var panel := preload("res://scripts/garden_panel.gd").new()
+	panel.ui = self
+	v.add_child(panel)
 
 func open_refinery() -> void:
 	if game.mode != "ship" or int(Progress.modules.get("refinery_door",0)) == 0:
@@ -560,12 +559,9 @@ func open_storage() -> void:
 	var v := overlay("Биохранилище", "Живая ткань удерживает всё, что вы принесли домой.",760)
 	for i in 4:
 		v.add_child(label("%s     %d" % [GameData.RESOURCES[i]["name"],Progress.bank[i]],21,GameData.RESOURCES[i]["color"]))
-	v.add_child(label("Последние вылазки",22))
-	if Progress.history.is_empty():
-		v.add_child(paragraph("Корабль ждёт вашего первого возвращения.",17))
-	else:
-		for item: Dictionary in Progress.history.slice(-3):
-			v.add_child(paragraph(("Успешное возвращение" if bool(item.get("success",false)) else "Связь восстановлена после поражения")+"  ·  "+costs(item.get("loot",[0,0,0,0])),15))
+	v.add_child(paragraph("Сохранение добычи после поражения: %d%%. Плоды ксеносада можно переработать в ресурсы или взять на охоту." % roundi(Progress.death_keep_ratio()*100),17))
+	if Progress.garden_slots() > 0:
+		v.add_child(button("Посетить ксеносад",open_garden,true))
 
 func open_heart() -> void:
 	page = "heart"

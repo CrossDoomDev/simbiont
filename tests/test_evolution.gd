@@ -105,7 +105,7 @@ func _run() -> void:
 	purchase_all(true)
 	check(progress.player_stats() == before_stats,"all ship investments leave every character stat unchanged")
 	check(is_equal_approx(progress.death_keep_ratio(),0.8),"completed salvage branches keep 80 percent after defeat")
-	check(progress.history_limit() == 50,"black memory expands real journal capacity")
+	check(progress.garden_slots() == 3,"root network opens the third playable garden bed")
 	check(progress.credited_loot([100,100,100,3],false) == [80,80,80,2],"defeat payout is floored once with salvage ratio")
 	check(progress.credited_loot([100,100,100,3],true) == [150,121,115,3],"victory bonuses apply to ordinary resources and never multiply cores")
 	check(progress.credited_loot([100,100,100,3],true,"swarm") == [175,146,140,3],"swarm successful payout includes economic bonuses")

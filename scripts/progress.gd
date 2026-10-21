@@ -3,6 +3,7 @@ extends Node
 
 signal changed
 
+const Garden = preload("res://scripts/garden_data.gd")
 const Data = preload("res://scripts/data.gd")
 const SAVE_VERSION: int = 2
 const DEFAULT_SETTINGS: Dictionary = {"music": 0.5, "sfx": 0.7, "autofire": true, "touch": false}
@@ -21,6 +22,9 @@ var _processed_runs: Dictionary = {}
 var _transaction_busy: bool = false
 var legacy_traits: Dictionary = {}
 var protocol: String = "normal"
+var garden_beds: Array = Garden.empty_beds()
+var fruit_stock: Dictionary = {"vascular":0,"enzyme":0,"core":0}
+var prepared_lure := ""
 
 func _ready() -> void:
 	load_game()
@@ -37,6 +41,9 @@ func _defaults() -> void:
 	_processed_runs = {}
 	legacy_traits = {}
 	protocol = "normal"
+	garden_beds = Garden.empty_beds()
+	fruit_stock = {"vascular":0,"enzyme":0,"core":0}
+	prepared_lure = ""
 
 func _safe_integer(value: Variant, fallback: int, minimum: int, maximum: int) -> int:
 	if typeof(value) != TYPE_INT and typeof(value) != TYPE_FLOAT:
@@ -109,6 +116,19 @@ func _apply_document(document: Dictionary) -> void:
 					legacy_traits[key] = clampf(float(value),0.0,limit)
 	var saved_protocol := str(document.get("protocol","normal"))
 	protocol = saved_protocol if saved_protocol == "normal" or int(modules.get(saved_protocol+"_protocol",0)) > 0 else "normal"
+	var raw_beds: Variant = document.get("garden_beds",[])
+	if raw_beds is Array:
+		for i: int in mini(3,raw_beds.size()):
+			if raw_beds[i] is Dictionary:
+				var strain := str(raw_beds[i].get("strain",""))
+				if Garden.CULTURES.has(strain):
+					garden_beds[i] = {"strain":strain,"growth":_safe_integer(raw_beds[i].get("growth",0),0,0,int(Garden.CULTURES[strain]["growth"]))}
+	var raw_fruit: Variant = document.get("fruit_stock",{})
+	if raw_fruit is Dictionary:
+		for strain: String in fruit_stock:
+			fruit_stock[strain] = _safe_integer(raw_fruit.get(strain,0),0,0,99)
+	var saved_lure := str(document.get("prepared_lure",""))
+	prepared_lure = saved_lure if Garden.CULTURES.has(saved_lure) and int(fruit_stock.get(saved_lure,0)) > 0 and garden_slots() > 0 else ""
 	var raw_settings: Variant = document.get("settings", {})
 	if typeof(raw_settings) == TYPE_DICTIONARY:
 		settings["music"] = _safe_volume(raw_settings.get("music"), 0.5)
@@ -144,7 +164,7 @@ func _apply_document(document: Dictionary) -> void:
 			_processed_runs[entry["id"]] = true
 
 func _document() -> Dictionary:
-	return {"version": SAVE_VERSION, "legacy_traits": legacy_traits.duplicate(), "protocol":protocol, "bank": bank.duplicate(), "upgrades": upgrades.duplicate(), "modules": modules.duplicate(), "settings": settings.duplicate(), "history": history.duplicate(true), "completed": completed, "tutorial": tutorial, "story": story, "processed_runs": _processed_runs.keys()}
+	return {"garden_beds":garden_beds.duplicate(true),"fruit_stock":fruit_stock.duplicate(),"prepared_lure":prepared_lure,"version": SAVE_VERSION, "legacy_traits": legacy_traits.duplicate(), "protocol":protocol, "bank": bank.duplicate(), "upgrades": upgrades.duplicate(), "modules": modules.duplicate(), "settings": settings.duplicate(), "history": history.duplicate(true), "completed": completed, "tutorial": tutorial, "story": story, "processed_runs": _processed_runs.keys()}
 
 func save_game() -> bool:
 	var temporary: String = save_path + ".tmp"
@@ -215,7 +235,7 @@ func _purchase(id: String, ship_module: bool) -> bool:
 	changed.emit()
 	return true
 
-func deposit_run(loot: Array, success: bool, run_id: String, run_protocol: String = "normal") -> bool:
+func deposit_run(loot: Array, success: bool, run_id: String, run_protocol: String = "normal", cleared_nests: int = 3) -> bool:
 	if _transaction_busy or run_id.is_empty() or run_id.length() > 128 or _processed_runs.has(run_id) or loot.size() != 4:
 		return false
 	for value: Variant in loot:
@@ -230,6 +250,9 @@ func deposit_run(loot: Array, success: bool, run_id: String, run_protocol: Strin
 		bank[i] = mini(int(bank[i]) + int(credited[i]), Data.RESOURCE_LIMIT)
 	_processed_runs[run_id] = true
 	if success:
+		for bed: Dictionary in garden_beds:
+			if Garden.CULTURES.has(bed["strain"]):
+				bed["growth"] = mini(int(Garden.CULTURES[bed["strain"]]["growth"]),int(bed["growth"])+clampi(cleared_nests,0,3))
 		completed = mini(completed + 1, 999999)
 		story = maxi(story, 1)
 	history.append({"id": run_id, "success": success, "loot": credited, "time": int(Time.get_unix_time_from_system())})
@@ -348,3 +371,78 @@ func convert(recipe_id: String) -> bool:
 
 func mission_unlocked(id: int) -> bool:
 	return id >= 0 and id < Data.MISSIONS.size() and int(modules["heart"]) >= int(Data.MISSIONS[id]["heart_required"])
+
+func garden_slots() -> int:
+	if int(modules.get("archive_door",0)) == 0:
+		return 0
+	return 3 if int(modules.get("blackbox",0)) > 0 else 2
+
+func garden_finish(previous: Dictionary) -> bool:
+	if not save_game():
+		_defaults()
+		_apply_document(previous)
+		_transaction_busy = false
+		return false
+	_transaction_busy = false
+	changed.emit()
+	return true
+
+func sow_garden(index: int, strain: String) -> bool:
+	if _transaction_busy or index < 0 or index >= garden_slots() or not Garden.CULTURES.has(strain):
+		return false
+	if garden_beds[index]["strain"] != "" or not can_afford(Garden.CULTURES[strain]["cost"]):
+		return false
+	var previous := _document()
+	_transaction_busy = true
+	for i: int in 4:
+		bank[i] -= int(Garden.CULTURES[strain]["cost"][i])
+	garden_beds[index] = {"strain":strain,"growth":0}
+	return garden_finish(previous)
+
+func harvest_garden(index: int) -> bool:
+	if _transaction_busy or index < 0 or index >= garden_slots() or Garden.stage(garden_beds[index]) != 3:
+		return false
+	var strain: String = garden_beds[index]["strain"]
+	if int(fruit_stock.get(strain,0)) >= 99:
+		return false
+	var previous := _document()
+	_transaction_busy = true
+	fruit_stock[strain] += 1
+	garden_beds[index] = {"strain":"","growth":0}
+	return garden_finish(previous)
+
+func digest_fruit(strain: String) -> bool:
+	if _transaction_busy or garden_slots() == 0 or not Garden.CULTURES.has(strain) or int(fruit_stock.get(strain,0)) <= 0:
+		return false
+	var reward: Array = Garden.CULTURES[strain]["digest"]
+	for i: int in 4:
+		if int(bank[i])+int(reward[i]) > Data.RESOURCE_LIMIT:
+			return false
+	var previous := _document()
+	_transaction_busy = true
+	fruit_stock[strain] -= 1
+	if prepared_lure == strain and fruit_stock[strain] == 0:
+		prepared_lure = ""
+	for i: int in 4:
+		bank[i] += int(reward[i])
+	return garden_finish(previous)
+
+func prepare_lure(strain: String) -> bool:
+	if _transaction_busy or garden_slots() == 0 or (strain != "" and (not Garden.CULTURES.has(strain) or int(fruit_stock.get(strain,0)) <= 0)):
+		return false
+	var previous := _document()
+	_transaction_busy = true
+	prepared_lure = strain
+	return garden_finish(previous)
+
+func launch_lure() -> Dictionary:
+	if prepared_lure == "":
+		return {"ok":true,"strain":""}
+	if _transaction_busy or garden_slots() == 0 or int(fruit_stock.get(prepared_lure,0)) <= 0:
+		return {"ok":false,"strain":""}
+	var previous := _document()
+	var strain := prepared_lure
+	_transaction_busy = true
+	fruit_stock[strain] -= 1
+	prepared_lure = ""
+	return {"ok":garden_finish(previous),"strain":strain}

@@ -11,6 +11,7 @@ func _ready() -> void:
 	if has_node("MembraneShape"):
 		shape = get_node("MembraneShape")
 		caption = get_node("SealCaption")
+		_add_generated_door()
 		refresh()
 		return
 	shape = CollisionShape2D.new()
@@ -22,13 +23,14 @@ func _ready() -> void:
 	caption = Label.new()
 	caption.name = "SealCaption"
 	caption.text = definition["name"]+"\nВосстановите отсек в дереве корабля"
-	caption.position = Vector2(-190,-70)
+	caption.position = Vector2(-190,-98 if (definition["rect"] as Rect2).size.x > (definition["rect"] as Rect2).size.y else -(definition["rect"] as Rect2).size.y*0.5-80)
 	caption.size = Vector2(380,60)
 	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caption.add_theme_font_override("font",preload("res://assets/fonts/regular.tres"))
 	caption.add_theme_font_size_override("font_size",16)
 	caption.add_theme_color_override("font_color",Color("e5b3d0"))
 	add_child(caption)
+	_add_generated_door()
 	refresh()
 
 func refresh() -> void:
@@ -37,20 +39,16 @@ func refresh() -> void:
 	if is_instance_valid(shape):
 		shape.set_deferred("disabled",not locked)
 
-func _draw() -> void:
-	var area := Rect2(-(definition["rect"] as Rect2).size*0.5,(definition["rect"] as Rect2).size)
-	draw_style_box(_membrane(),area)
-	var vertical: bool = area.size.y > area.size.x
-	for i: int in 11:
-		var progress: float = (i+0.5)/11.0
-		var p := Vector2(0,lerpf(area.position.y,area.end.y,progress)) if vertical else Vector2(lerpf(area.position.x,area.end.x,progress),0)
-		var side := Vector2(27,0) if vertical else Vector2(0,27)
-		draw_polyline(PackedVector2Array([p-side,p+Vector2(sin(i*2)*7,cos(i)*6),p+side]),Color("a65378"),3.0,true)
-
-func _membrane() -> StyleBoxFlat:
-	var box := StyleBoxFlat.new()
-	box.bg_color = Color("321a31")
-	box.border_color = Color("7b3d66")
-	box.set_border_width_all(3)
-	box.set_corner_radius_all(18)
-	return box
+func _add_generated_door() -> void:
+	if has_node("GeneratedMembrane"):
+		return
+	var art := Sprite2D.new()
+	art.name = "GeneratedMembrane"
+	var index: int = ["archive_door","refinery_door","quarantine_door"].find(str(definition["id"]))
+	art.texture = preload("res://scripts/evolution_art.gd").cell(preload("res://assets/art/evolution/gates.png"),1,3,maxi(0,index))
+	var extent: Vector2 = (definition["rect"] as Rect2).size
+	var vertical := extent.y > extent.x
+	art.rotation = PI*0.5 if vertical else 0.0
+	art.scale = Vector2(maxf(extent.x,extent.y)+24,minf(extent.x,extent.y)+18)/art.texture.get_size()
+	art.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	add_child(art)

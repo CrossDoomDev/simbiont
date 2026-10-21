@@ -11,12 +11,12 @@ const ROOMS: Array[Dictionary] = [
 	{"id": "navigation", "label": "Память пути", "center": Vector2(1640, 415), "radii": Vector2(265, 245), "organ": Vector2(1660, 325), "color": Color("4ec8de")},
 	{"id": "feeding", "label": "Восстановительный узел", "center": Vector2(390, 1150), "radii": Vector2(270, 232), "organ": Vector2(360, 1065), "color": Color("efa15b")},
 	{"id": "storage", "label": "Ресурсные мешки", "center": Vector2(1625, 1130), "radii": Vector2(290, 258), "organ": Vector2(1640, 1055), "color": Color("78cba4")},
-	{"id":"archive","label":"Архив отпечатков","center":Vector2(2410,550),"radii":Vector2(270,240),"organ":Vector2(2450,480),"color":Color("70cbdc"),"unlock":"archive_door"},
+	{"id":"archive","label":"Ксеносад","center":Vector2(2410,550),"radii":Vector2(270,240),"organ":Vector2(2450,480),"color":Color("70cbdc"),"unlock":"archive_door"},
 	{"id":"refinery","label":"Камера переработки","center":Vector2(1740,1820),"radii":Vector2(300,260),"organ":Vector2(1770,1740),"color":Color("b3d487"),"unlock":"refinery_door"},
 	{"id":"quarantine","label":"Карантинная камера","center":Vector2(500,1800),"radii":Vector2(285,250),"organ":Vector2(480,1725),"color":Color("c18ce0"),"unlock":"quarantine_door"},
 ]
 const GATES: Array[Dictionary] = [
-	{"id":"archive_door","rect":Rect2(2055,330,64,280),"name":"АРХИВ · ЗАПЕЧАТАН"},
+	{"id":"archive_door","rect":Rect2(2055,330,64,280),"name":"КСЕНОСАД · ЗАПЕЧАТАН"},
 	{"id":"refinery_door","rect":Rect2(1570,1470,280,64),"name":"ПЕРЕРАБОТКА · ЗАПЕЧАТАНА"},
 	{"id":"quarantine_door","rect":Rect2(330,1460,280,64),"name":"КАРАНТИН · ЗАПЕЧАТАН"},
 ]

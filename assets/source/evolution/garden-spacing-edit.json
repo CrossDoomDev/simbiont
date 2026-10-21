@@ -1,0 +1,6 @@
+{
+  "generator": "image_gen",
+  "source": "garden-generated.png",
+  "result": "garden-spaced-generated.png",
+  "prompt": "Edit this actual game sprite atlas for clean reusable grid slicing. Preserve all twelve plant designs and their painted dark organic symbiote style and real alpha transparency. Layout MUST be exactly FOUR equal columns and THREE equal rows. Every single plant, including the large mature flowers in column 4, must be entirely contained in the CENTRAL 65 PERCENT of its own square cell, with at least 15 percent FULLY TRANSPARENT EMPTY padding on EVERY side of EVERY cell. Uniform cell centers, no tips cut off at the edge of the canvas, no leaf or root crosses any cell boundary, no sprite enters a neighbor's cell. Scale the largest plants down to fit; keep them distinct growth stages. Top row pink vascular vines from seed to mature fruit, middle row cyan enzyme flower stages, bottom row golden core cocoon stages. No text, no grid lines, no symbols, no opaque background. This is a technical spacing correction of the source atlas so native 4x3 equal partitions show a single complete plant each. Make the empty gutters wide and completely clean."
+}
