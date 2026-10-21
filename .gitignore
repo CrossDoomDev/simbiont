@@ -21,3 +21,6 @@ node_modules/
 *.log
 .DS_Store
 Thumbs.db
+
+# Temporary native-library copies produced by the running Godot editor.
+/addons/godot_git/bin/windows/~*.dll

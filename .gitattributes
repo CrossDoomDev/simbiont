@@ -5,6 +5,7 @@
 *.tres text eol=lf
 *.uid text eol=lf
 *.import text eol=lf
+*.gdextension text eol=lf
 *.sh text eol=lf
 *.py text eol=lf
 *.yml text eol=lf
@@ -16,3 +17,4 @@
 *.wav binary
 *.ttf binary
 *.pdf binary
+/addons/godot_git/bin/** binary
