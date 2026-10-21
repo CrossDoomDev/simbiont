@@ -105,10 +105,13 @@ func button(value: String, callback: Callable, primary: bool = false) -> Button:
 	b.clip_text = true
 	b.custom_minimum_size = Vector2(minf(320, bold.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,19).x + 88),64)
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	# Buttons are not parented yet; get_theme_stylebox would read Godot's defaults.
+	for state: String in ["normal","hover","pressed","hover_pressed","disabled","focus"]:
+		b.add_theme_stylebox_override(state,root.theme.get_stylebox(state,"Button").duplicate())
 	b.add_theme_stylebox_override("normal", BioSkin.button(Color(1.16, 1.03, 1.2) if primary else Color.WHITE))
 	if value == "×":
 		b.custom_minimum_size.x = 58
-		for state: String in ["normal", "hover", "pressed", "disabled"]:
+		for state: String in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
 			var close_style: StyleBox = b.get_theme_stylebox(state).duplicate()
 			close_style.content_margin_left = 16
 			close_style.content_margin_right = 16
@@ -172,7 +175,7 @@ func _build_hud() -> void:
 	toolbar_button = menu_button
 	menu_button.tooltip_text = "Меню / пауза"
 	menu_button.custom_minimum_size = Vector2(138,54)
-	for state: String in ["normal", "hover", "pressed", "disabled"]:
+	for state: String in ["normal", "hover", "pressed", "hover_pressed", "disabled", "focus"]:
 		var toolbar_style: StyleBox = menu_button.get_theme_stylebox(state).duplicate()
 		toolbar_style.content_margin_left = 28
 		toolbar_style.content_margin_right = 28

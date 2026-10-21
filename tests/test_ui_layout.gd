@@ -37,6 +37,13 @@ func _run() -> void:
 	game = load("res://scenes/main.tscn").instantiate()
 	root.add_child(game)
 	await _settle()
+	# Close and toolbar buttons are styled before parenting; prevent native gray fallback.
+	game.ui.open_pause()
+	await _settle()
+	for control: Button in [game.ui.toolbar_button,_buttons(game.ui.overlay_header)[0]]:
+		for state: String in ["hover","hover_pressed","focus"]:
+			var skin: StyleBox = control.get_theme_stylebox(state)
+			check(skin is StyleBoxTexture and skin.texture == preload("res://assets/art/ui/button.png"), "toolbar/close %s uses organic texture before and after click" % state)
 	game.set_physics_process(false)
 	game.player.set_physics_process(false)
 	for dimensions: Vector2i in [Vector2i(1280,720), Vector2i(800,600), Vector2i(640,360), Vector2i(640,960), Vector2i(1920,1080)]:

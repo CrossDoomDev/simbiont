@@ -12,6 +12,8 @@ var damage := 10.0
 var armor := 0.0
 var invulnerable := 0.0
 var cooldown := 0.0
+const HOST_ATTACK_HOLD := 1.0
+var attack_pose_remaining := 0.0
 var shot_clock := 0.0
 var age := 0.0
 var aim := Vector2.DOWN
@@ -131,6 +133,7 @@ func _physics_process(delta: float) -> void:
 	invulnerable = maxf(0.0, invulnerable - delta)
 	cooldown = maxf(0.0, cooldown - delta)
 	shot_clock = maxf(0.0, shot_clock - delta)
+	attack_pose_remaining = maxf(0.0, attack_pose_remaining - delta)
 	_contact_clock = maxf(0.0, _contact_clock - delta)
 	if kind == "host":
 		_host_tick(delta)
@@ -144,10 +147,13 @@ func _physics_process(delta: float) -> void:
 	elif direction.y < 0:
 		facing = 3
 	var state := "walk" if velocity.length_squared() > 4 else "idle"
-	if shot_clock > attack_interval - 0.12:
+	if (kind == "host" and game.mode == "mission" and attack_pose_remaining > 0.0) or (kind != "host" and shot_clock > attack_interval - 0.12):
 		state = "attack"
 	anim.play("%s_%d" % [state, facing])
-	anim.position.y = sin(age * (6.0 if state == "walk" else 2.4)) * (1.2 if kind == "host" else 1.8)
+	var moving: bool = velocity.length_squared() > 4.0
+	var bob: float = sin(age * (6.0 if moving else 2.4)) * (1.2 if kind == "host" else 1.8)
+	var recoil: float = clampf((shot_clock - attack_interval + 0.09) / 0.09,0.0,1.0) * 1.6 if kind == "host" and attack_pose_remaining > 0.0 else 0.0
+	anim.position = Vector2(0,bob) - aim * recoil
 	queue_redraw()
 
 func _host_tick(delta: float) -> void:
@@ -155,6 +161,7 @@ func _host_tick(delta: float) -> void:
 		return
 	velocity = move_input.limit_length() * speed
 	if game.mode != "mission":
+		attack_pose_remaining = 0.0
 		if velocity.length_squared() > 1:
 			aim = velocity.normalized()
 		return
@@ -168,6 +175,7 @@ func _host_tick(delta: float) -> void:
 			shoot = true
 	if shoot and shot_clock <= 0:
 		shot_clock = attack_interval
+		attack_pose_remaining = HOST_ATTACK_HOLD
 		game.fire(self, aim, false)
 	# Only the portion of this tick after the damage lockout can heal.
 	var healing_delta: float = maxf(0.0, delta - regen_delay_remaining)

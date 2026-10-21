@@ -36,13 +36,16 @@ static func apply(theme: Theme) -> void:
 	theme.set_stylebox("panel", "PanelContainer", panel())
 	for control: String in ["Button", "CheckButton"]:
 		theme.set_stylebox("normal", control, button())
-		theme.set_stylebox("hover", control, button(Color(1.3, 1.12, 1.35)))
-		theme.set_stylebox("pressed", control, button(Color(0.78, 0.68, 0.85)))
+		theme.set_stylebox("hover", control, button(Color(1.22, 0.78, 1.16)))
+		theme.set_stylebox("pressed", control, button(Color(0.82, 0.6, 0.88)))
 		theme.set_stylebox("disabled", control, button(Color(0.5, 0.45, 0.55)))
-		var focus := fluid(Color(0.8, 0.4, 0.9, 0.12))
-		focus.border_color = Color("d998e7")
-		focus.set_border_width_all(2)
-		theme.set_stylebox("focus", control, focus)
+		theme.set_stylebox("hover_pressed", control, button(Color(1.05, 0.64, 1.12)))
+		theme.set_color("font_hover_color", control, Color("b8ffe0"))
+		theme.set_color("font_focus_color", control, Color("f1b5e6"))
+		theme.set_color("font_pressed_color", control, Color("f1b5e6"))
+		theme.set_color("font_hover_pressed_color", control, Color("f1b5e6"))
+		# Focus is drawn over the current state: keep it organic, without a flat rectangle.
+		theme.set_stylebox("focus", control, button(Color(1.3,0.62,1.15,0.4)))
 	var track := fluid(Color("37233d"))
 	track.content_margin_top = 3
 	track.content_margin_bottom = 3
