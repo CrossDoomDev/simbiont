@@ -18,8 +18,6 @@ jobs:
     timeout-minutes: 15
     env:
       GODOT_VERSION: 4.7.1
-      GODOT_INSTALL_DIR: ${{ runner.temp }}/godot-bin
-      XDG_DATA_HOME: ${{ runner.temp }}/symbiont-user-data
     steps:
       - uses: actions/checkout@v6
         with:
@@ -30,6 +28,8 @@ jobs:
       - name: Install Godot and asset tooling
         shell: bash
         run: |
+          export GODOT_INSTALL_DIR="$RUNNER_TEMP/godot-bin"
+          echo "XDG_DATA_HOME=$RUNNER_TEMP/symbiont-user-data" >> "$GITHUB_ENV"
           bash tools/setup_cloud.sh
           echo "$GODOT_INSTALL_DIR" >> "$GITHUB_PATH"
           python3 -m pip install --requirement tools/requirements.txt
