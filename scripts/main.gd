@@ -329,21 +329,39 @@ func _release_nest_enemies() -> void:
 			return
 
 func _spawn_wave_enemy() -> void:
-	if get_tree().get_nodes_in_group("enemies").size() >= GameData.MAX_ENEMIES - GameData.WAVE_RESERVE:
+	if get_tree().get_nodes_in_group("enemies").size() >= GameData.MAX_ENEMIES - GameData.WAVE_RESERVE or world.caves.is_empty():
 		return
-	for attempt in 16:
-		var direction := Vector2.RIGHT.rotated(rng.randf()*TAU)
-		# Enter just outside the actual camera, rather than far away in a circle.
-		var half_view: Vector2 = get_viewport_rect().size / camera.zoom * 0.5
-		var edge: float = minf(half_view.x / maxf(absf(direction.x), 0.001), half_view.y / maxf(absf(direction.y), 0.001))
-		var point := player.position + direction * (edge + rng.randf_range(80.0, 190.0))
-		if not world.is_walkable(point,35):
+	# Prefer nearby entrances, but fall back to the other walls if one is camped
+	# or occupied. Never create a wave enemy at an arbitrary point in the room.
+	var choices: Array[Node2D] = world.caves.duplicate()
+	choices.sort_custom(func(a: Node2D, b: Node2D) -> bool:
+		return a.position.distance_squared_to(player.position) < b.position.distance_squared_to(player.position))
+	var kinds: Array[String] = ["crawler", "crawler", "shell", "ranged"]
+	var enemy_kind: String = kinds[rng.randi_range(0, 3)]
+	if run_time < 20.0 and rng.randf() < 0.6:
+		enemy_kind = "crawler"
+	var radius: float = float(GameData.ENEMIES[enemy_kind]["radius"])
+	for attempt: int in 40:
+		var cave: Node2D = choices[rng.randi_range(0, mini(5, choices.size() - 1) if attempt < 20 else choices.size() - 1)]
+		var inward: Vector2 = cave.get_meta("inward")
+		var mouth: Vector2 = cave.get_node("Mouth").global_position
+		var point: Vector2 = mouth + inward.orthogonal() * rng.randf_range(-30.0, 30.0)
+		if point.distance_to(player.position) < radius + player.radius + 45.0 or not world.is_walkable(point, radius + 6.0):
 			continue
-		var kinds: Array[String] = ["crawler","crawler","shell","ranged"]
-		var enemy_kind := kinds[rng.randi_range(0,3)]
-		if run_time<20 and rng.randf()<0.6:
-			enemy_kind = "crawler"
-		spawn_enemy(enemy_kind,point)
+		var occupied := false
+		for other: BioActor in get_tree().get_nodes_in_group("enemies"):
+			if not other.dead and point.distance_to(other.position) < radius + other.radius + 5.0:
+				occupied = true
+				break
+		if occupied:
+			continue
+		var enemy := spawn_enemy(enemy_kind, point)
+		enemy.emergence_direction = inward
+		enemy.emergence_remaining = 0.7
+		enemy.aim = inward
+		enemy.modulate.a = 0.0
+		enemy.set_meta("source_cave", cave.get_path())
+		burst(point, Color("8c817c"), 3)
 		return
 
 func spawn_enemy(kind: String, point: Vector2) -> BioActor:

@@ -1,0 +1,12 @@
+{
+  "generator": "OpenAI image_gen",
+  "source": "assets/source/cave-entrance-generated.png",
+  "output": "assets/art/cave_entrance.png",
+  "size": [
+    256,
+    224
+  ],
+  "prompt": "Create ONE production transparent game sprite: an alien ROCK CAVE ENTRANCE embedded in the north/top boundary of a dark overhead 2D game room, mouth opens toward SOUTH / bottom of image. STRICT TOP-DOWN ORTHOGRAPHIC cutaway perspective, matching detailed dark retro pixel art. An irregular low crescent of jagged blue-black and muted burgundy rock, thick rocky rim and cracked stone slabs, sparse dark teal moss, a few tiny cyan and violet luminous mushrooms. A large deep BLACK tunnel mouth in the lower center, visibly passable and broad enough for creatures to emerge toward bottom. Interior shadows go upward under the rock roof. Readable rock silhouette, dark detailed handcrafted pixel clusters, game asset intended to be reduced to about 224x192 pixels. NOT a mountain landscape, NOT a door, NOT a portal, no magical ring, no upright frontal architecture, no pedestal, no text, no character. Wide squat entrance, rock rim occupies top half and sides, mouth in bottom half. A short rocky dirt apron tapers at bottom edge. Whole object with generous transparent margin; background genuinely transparent, no environment or floor outside the small cave apron. No cast shadow extending far beyond sprite.",
+  "build": "python tools/build_cave_art.py",
+  "placement": "Twelve editable cave entrances along each mission boundary; sprite rotated toward the room, with Mouth and Exit markers."
+}

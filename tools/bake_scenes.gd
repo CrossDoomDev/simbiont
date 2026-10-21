@@ -1,7 +1,7 @@
 extends SceneTree
 ## Run after asset import: godot --headless --path . --script res://tools/bake_scenes.gd
 ## Produces editable native scenes and reusable SpriteFrames resources.
-## For ship-only layout/art changes, append: -- --ship-only
+## For focused changes, append: -- --ship-only or -- --missions-only
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -18,6 +18,9 @@ func _run() -> void:
 	var frame_keys: Array[String] = ["host_combat", "host_base", "enemy_crawler", "enemy_shell", "enemy_ranged", "enemy_guardian"]
 	if ship_only:
 		contexts = ["ship"]
+		frame_keys.clear()
+	if "--missions-only" in OS.get_cmdline_user_args():
+		contexts = ["forest", "swamp"]
 		frame_keys.clear()
 	var world_script: Script = load("res://scripts/world.gd") as Script
 	var actor_script: Script = load("res://scripts/actor.gd") as Script

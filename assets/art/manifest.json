@@ -153,6 +153,13 @@
         "6 organic floors + 2 organic walls",
         "4 dirt path floors + 2 rock boundaries + 2 organic walls"
       ]
+    },
+    "cave_entrance.png": {
+      "size": [
+        256,
+        224
+      ],
+      "notes": "Generated rocky boundary cave, rotated toward each room. Source and exact prompt in cave_manifest.json."
     }
   },
   "prompts": [
@@ -190,12 +197,14 @@
     "assets/source/organs-generated.png",
     "assets/source/props-generated.png",
     "assets/source/hero-down-walk-generated.png",
-    "assets/source/hero-down-attack-generated.png"
+    "assets/source/hero-down-attack-generated.png",
+    "assets/source/cave-entrance-generated.png"
   ],
   "build": [
     "C:/Python/python.exe tools/build_tile_art.py",
     "C:/Python/python.exe tools/assemble_art.py",
-    "python tools/check_host_animation.py"
+    "python tools/check_host_animation.py",
+    "python tools/build_cave_art.py"
   ],
   "limitations": [
     "Screenshot fidelity must be checked from the live Godot level. contact_sheet.png is only an asset inspection sheet."

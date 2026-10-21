@@ -37,6 +37,8 @@ var _contact_clock: float = 0.0
 var _separation_clock: float = 0.0
 var _separation: Vector2 = Vector2.ZERO
 var _directional_enemy_atlas: bool = false
+var emergence_remaining: float = 0.0
+var emergence_direction := Vector2.DOWN
 var guardian_state: String = "stalk"
 var guardian_attack: String = ""
 var guardian_state_time: float = 0.0
@@ -181,6 +183,15 @@ func _enemy_tick(delta: float) -> void:
 		velocity = Vector2.ZERO
 		if kind == "guardian":
 			_cancel_guardian_attack()
+		return
+	if emergence_remaining > 0.0:
+		# Walk from the black mouth into the room before targeting or attacking.
+		# This runs in physics with the world, so pause also freezes the exit.
+		var step: float = minf(delta, emergence_remaining)
+		emergence_remaining = maxf(0.0, emergence_remaining - delta)
+		velocity = emergence_direction * (96.0 * step / delta if delta > 0.0 else 96.0)
+		aim = emergence_direction
+		modulate.a = clampf(1.0 - emergence_remaining / 0.35, 0.0, 1.0)
 		return
 	var offset: Vector2 = game.player.global_position - global_position
 	var distance := offset.length()

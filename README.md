@@ -70,6 +70,7 @@ python -m http.server 8080 --directory build/web --bind 127.0.0.1
 - Все улучшения покупаются только на корабле за ресурсы. Временного выбора из трёх усилений в вылазке нет.
 - Дальность биоимпульса — около 344 пикселей от дула (вдвое меньше прежней). Волны растут с 3 до 10 врагов и ускоряются с 1,9 до 0,65 секунды; обычные волны оставляют места для стаи из опухолей.
 - Каждая уничтоженная опухоль выпускает стаю из 9–18 врагов либо единственного стража (вторая уничтоженная опухоль). Страж быстрее преследует носителя, совершает рывки и выпускает частые веерные залпы.
+- Обычные волны выходят из каменных пещер по краям обеих карт: по три входа на каждой стене. Враг выходит из темноты по свободному проходу, затем начинает преследование. Произвольных точек появления возле игрока больше нет; стаи из опухолей и босс сохраняют свой источник.
 - Возврат после цели через меню с затемнением и однократным зачислением добычи. После смерти сохраняется половина каждого ресурса вылазки с округлением вниз; прежний склад не теряется.
 - Локальный профиль, резервная копия, проверка полей сохранения, история вылазок, настройки музыки/эффектов/управления и сброс с подтверждением.
 - Три оригинальные музыкальные петли: корабельная тема, боевой трек миссии и отдельная ускоренная тема стража; корабельный эмбиент и короткие игровые звуки собственного синтеза. В настройках показана громкость в процентах; ноль отключает музыку.
@@ -125,13 +126,16 @@ $godot = powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\launch.
 & $godot --headless --path . --script res://tests/test_touch.gd
 & $godot --headless --path . --script res://tests/test_ship.gd
 & $godot --headless --path . --script res://tests/test_combat.gd
+& $godot --headless --path . --script res://tests/test_caves.gd
 & $godot --headless --path . --script res://tests/test_audio.gd -- --audio-test
 & $godot --headless --path . -- --runtime-test
 # Для скриншотов требуется настоящий графический viewport:
 & $godot --path . -- --capture
 ```
 
-Проверки и `--capture` используют отдельные тестовые профили. Обычный `symbiont_save.json` не изменяется. Проверяйте код возврата и сообщения `SCRIPT_CHECKS`, `PROGRESS_TESTS`, `GAMEPLAY_TESTS`, `TOUCH_TESTS`, `SHIP_TESTS`, `COMBAT_TESTS`, `AUDIO_TESTS`, `RUNTIME_TESTS`, `SCREENSHOTS_OK`, а также ошибки в журнале. Звуковой тест захватывает фактический PCM через `AudioServer`; флаг `--record-audio` после `--audio-test` сохраняет записи в `artifacts/audio/`.
+Проверки и `--capture` используют отдельные тестовые профили. Обычный `symbiont_save.json` не изменяется. Проверяйте код возврата и сообщения `SCRIPT_CHECKS`, `PROGRESS_TESTS`, `GAMEPLAY_TESTS`, `TOUCH_TESTS`, `SHIP_TESTS`, `COMBAT_TESTS`, `CAVE_TESTS`, `AUDIO_TESTS`, `RUNTIME_TESTS`, `SCREENSHOTS_OK`, а также ошибки в журнале. Звуковой тест захватывает фактический PCM через `AudioServer`; флаг `--record-audio` после `--audio-test` сохраняет записи в `artifacts/audio/`.
+
+Исходник пещеры и запрос генерации сохранены в `assets/source/cave-entrance-generated.png` и `assets/art/cave_manifest.json`. Сборка изображения: `python tools/build_cave_art.py`; пересборка только двух карт с редактируемыми входами и маркерами выхода: `godot --headless --path . --script res://tools/bake_scenes.gd -- --missions-only`. Снимки четырёх сторон: `godot --path . --audio-driver Dummy --script res://tools/capture_caves.gd` при наличии графического контекста.
 
 Новые кадры помещений, предупреждений атак и четырёх направлений ходьбы можно воспроизвести командой `godot --path . --script res://tools/capture_iteration.gd` при наличии графического контекста. Она сохраняет `11_`–`16_` в `artifacts/screenshots/`, используя отдельный профиль. Проверка анатомии атласов: `python tools/check_host_animation.py`.
 

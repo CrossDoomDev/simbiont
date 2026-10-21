@@ -7,6 +7,7 @@ const ShipPlan = preload("res://scripts/ship_layout.gd")
 @export var bounds: Rect2 = Rect2(0, 0, 1536, 1152)
 @export var obstacles: Array[Vector3] = []
 var organs: Array[Node2D] = []
+var caves: Array[Node2D] = []
 @export var nest_positions: Array[Vector2] = []
 @export var spawn_point: Vector2 = Vector2(768, 660)
 var floor_map: TileMapLayer
@@ -26,6 +27,12 @@ func restore_bindings() -> void:
 	decorations = get_node_or_null("BiologicalDecorations") as Node2D
 	entities = get_node_or_null("Actors") as Node2D
 	organs.clear()
+	caves.clear()
+	var cave_root := get_node_or_null("CaveEntrances")
+	if cave_root != null:
+		for cave: Node in cave_root.get_children():
+			if cave is Node2D:
+				caves.append(cave as Node2D)
 	if decorations != null:
 		for child: Node in decorations.get_children():
 			if child is Node2D and child.has_meta("organ_id"):
@@ -234,9 +241,15 @@ func refresh_organs() -> void:
 
 func _build_forest(rng: RandomNumberGenerator) -> void:
 	nest_positions = [Vector2(1110,430),Vector2(2080,960),Vector2(1370,1570)]
+	_build_caves()
 	for i in 155:
 		var point := Vector2(rng.randf_range(120,2440),rng.randf_range(120,1800))
 		var clear := point.distance_to(spawn_point)<210
+		# Keep the mouth and approach clear for real collision-based exits.
+		for cave: Node2D in caves:
+			var inside: Vector2 = cave.position + Vector2(cave.get_meta("inward")) * 250.0
+			if point.distance_to(Geometry2D.get_closest_point_to_segment(point, cave.position, inside)) < 145.0:
+				clear = true
 		for nest in nest_positions:
 			if point.distance_to(nest)<170:
 				clear = true
@@ -272,6 +285,43 @@ func _build_forest(rng: RandomNumberGenerator) -> void:
 		decal.scale = Vector2(rng.randf_range(1,3),rng.randf_range(0.7,1.6))
 		decal.modulate = Color(0.1,0.48,0.38,0.09)
 		decorations.add_child(decal)
+
+func _build_caves() -> void:
+	var entrance_root := Node2D.new()
+	entrance_root.name = "CaveEntrances"
+	entrance_root.z_index = 1
+	add_child(entrance_root)
+	for side: int in 4:
+		for index: int in 3:
+			var inward: Vector2 = [Vector2.DOWN, Vector2.LEFT, Vector2.UP, Vector2.RIGHT][side]
+			var point: Vector2
+			match side:
+				0: point = Vector2(480 + index * 800, 80)
+				1: point = Vector2(bounds.size.x - 80, 384 + index * 576)
+				2: point = Vector2(480 + index * 800, bounds.size.y - 80)
+				3: point = Vector2(80, 384 + index * 576)
+			var cave := Node2D.new()
+			cave.name = "Cave_%d_%d" % [side, index]
+			cave.position = point
+			cave.set_meta("inward", inward)
+			entrance_root.add_child(cave)
+			var sprite := Sprite2D.new()
+			sprite.name = "RockEntrance"
+			sprite.texture = load("res://assets/art/cave_entrance.png")
+			sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			sprite.rotation = inward.angle() - PI * 0.5
+			if biome == "swamp":
+				sprite.modulate = Color(1.0, 0.70, 0.86)
+			cave.add_child(sprite)
+			var mouth := Marker2D.new()
+			mouth.name = "Mouth"
+			mouth.position = inward * 56.0
+			cave.add_child(mouth)
+			var exit := Marker2D.new()
+			exit.name = "Exit"
+			exit.position = inward * 118.0
+			cave.add_child(exit)
+			caves.append(cave)
 
 func is_walkable(point: Vector2, clearance: float = 25) -> bool:
 	if biome == "ship":
