@@ -1,0 +1,442 @@
+{
+  "title": "Symbiont — original procedural soundtrack and sound design",
+  "generator": "tools/generate_audio.py",
+  "seed_policy": "All random generators have fixed seeds. Rebuilds are deterministic.",
+  "source": "Original additive, FM and filtered-noise synthesis; no samples, external music or voice assets.",
+  "format": "44100 Hz, stereo, signed 16-bit PCM WAV",
+  "loop_implementation": "Circular event accumulation and RIFF smpl markers; loop_end is the frame count in Godot.",
+  "godot": {
+    "load": "var stream = load(\"res://assets/audio/mission.wav\").duplicate() as AudioStreamWAV",
+    "loop": "stream.loop_mode = AudioStreamWAV.LOOP_FORWARD; stream.loop_begin = 0; stream.loop_end = int(stream.get_length() * stream.mix_rate)",
+    "play": "AudioStreamPlayer.stream = stream; AudioStreamPlayer.play()",
+    "recommended_db": {
+      "music": -8,
+      "ambient": -19,
+      "sfx": -6,
+      "alarm": -13
+    },
+    "note": "Loop hub, mission, ambient and alarm only. Stop/pause background AudioStreamPlayers when the game loses focus."
+  },
+  "assets": [
+    {
+      "name": "mission",
+      "path": "res://assets/audio/mission.wav",
+      "role": "music",
+      "description": "Оригинальная 72-секундная музыка: низкие минорные подкладки, сдвоенный пульс, далёкие стеклянные обертоны; 80 BPM.",
+      "seconds": 72.0,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": true,
+      "sha256": "9c7ccbc3ad76cb9f54c17223d9115cc46a59fce2808066e5ea4b539c614e7f94",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -8.4,
+        "rms_dbfs": -22.12,
+        "dc_offset": 0.0001844,
+        "boundary_jump_pcm": 28,
+        "max_adjacent_jump_pcm": 288,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "hub",
+      "path": "res://assets/audio/hub.wav",
+      "role": "music",
+      "description": "Приглушённый эмбиент живого корабля: низкое дыхание тканей, тёмные гармоники и далёкие обертоны без речи.",
+      "seconds": 72.0,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": true,
+      "sha256": "7316f4dcb7565696de2c8e2792563b4bf1b967e28251fc5c30784b3caa3032c8",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -9.9,
+        "rms_dbfs": -21.88,
+        "dc_offset": -3e-07,
+        "boundary_jump_pcm": 27,
+        "max_adjacent_jump_pcm": 113,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "ambient",
+      "path": "res://assets/audio/ambient.wav",
+      "role": "ambience",
+      "description": "Низкий органический резонанс и редкие влажные капли живого корабля; бесшовный цикл без речи.",
+      "seconds": 18.0,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": true,
+      "sha256": "e9007102e79a65eed27ce7a8b762c164568deac9e51bf7336d48fb63b3952182",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -11.06,
+        "rms_dbfs": -19.87,
+        "dc_offset": -4.4e-06,
+        "boundary_jump_pcm": 40,
+        "max_adjacent_jump_pcm": 264,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "move",
+      "path": "res://assets/audio/move.wav",
+      "role": "sfx",
+      "description": "Тихий мягкий шаг носителя по биологической поверхности.",
+      "seconds": 0.225,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "24783266700e34707be09a24e2f150926350e27096730e5d35f3218ada3040a2",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -12.77,
+        "rms_dbfs": -25.94,
+        "dc_offset": 3e-07,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 1421,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "slime",
+      "path": "res://assets/audio/slime.wav",
+      "role": "sfx",
+      "description": "Биологическое шевеление и мягкое хлюпанье.",
+      "seconds": 0.385,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "e39a47a329c70cc4055764da19b73e9d1604de5e4493bb4d4373dfffa592757e",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -10.17,
+        "rms_dbfs": -23.55,
+        "dc_offset": -1e-07,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 2058,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "shoot",
+      "path": "res://assets/audio/shoot.wav",
+      "role": "sfx",
+      "description": "Выстрел биоимпульсного оружия: короткий влажный импульс с низким телесным резонансом.",
+      "seconds": 0.265,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "e7335b7f054c5b7966fc11caa48c59636043e3a01a0e91b6a2a32b14bd6a1073",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -5.51,
+        "rms_dbfs": -21.28,
+        "dc_offset": -3e-07,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 5422,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "hit",
+      "path": "res://assets/audio/hit.wav",
+      "role": "sfx",
+      "description": "Телесный удар с коротким хрустом и низким толчком.",
+      "seconds": 0.285,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "f2f5c53249b5adef2eb361f0774093fe0003bb0eabdb5c15f457a19e7c05468a",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -3.88,
+        "rms_dbfs": -19.38,
+        "dc_offset": -1e-07,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 5072,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "hurt",
+      "path": "res://assets/audio/hurt.wav",
+      "role": "sfx",
+      "description": "Получение урона носителем: приглушённый плотный удар.",
+      "seconds": 0.365,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "2144a09056b18de16514279fc7bf6776831684abadcd6ec297b650bff2510f4c",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -5.68,
+        "rms_dbfs": -20.96,
+        "dc_offset": 2e-07,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 5107,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "enemy_die",
+      "path": "res://assets/audio/enemy_die.wav",
+      "role": "sfx",
+      "description": "Короткий органический распад побеждённого врага.",
+      "seconds": 0.475,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "29f9f71c86a76c8ecfd61c9464d595216084e681f37dd8bacd5478231cd08134",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -7.74,
+        "rms_dbfs": -19.31,
+        "dc_offset": -2e-07,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 3099,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "death",
+      "path": "res://assets/audio/death.wav",
+      "role": "sfx",
+      "description": "Угасающий биологический вой и распад массы.",
+      "seconds": 1.56,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "6c1cdad0b146a2bb1f3a1acd71bf42b0078945fdac131d58b6e267b38cdaa1e8",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -4.88,
+        "rms_dbfs": -17.87,
+        "dc_offset": -0.0,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 3624,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "enemy_shot",
+      "path": "res://assets/audio/enemy_shot.wav",
+      "role": "sfx",
+      "description": "Протяжный импульс враждебного излучателя.",
+      "seconds": 0.235,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "6eac88f9d2507f98106556046db35960ec03d864a79957d9aad109337a81aeef",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -6.94,
+        "rms_dbfs": -22.54,
+        "dc_offset": -2e-07,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 4655,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "pickup",
+      "path": "res://assets/audio/pickup.wav",
+      "role": "sfx",
+      "description": "Короткий ясный двойной сигнал получения биоматериала.",
+      "seconds": 0.65,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "227fe64458a3a2f3c42cbd8a67d91b519eea23aea2cd19ac5ae8b4893aabe59d",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -8.18,
+        "rms_dbfs": -19.69,
+        "dc_offset": -0.0,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 1715,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "save",
+      "path": "res://assets/audio/save.wav",
+      "role": "sfx",
+      "description": "Спокойное трёхнотное подтверждение контрольной точки.",
+      "seconds": 1.25,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "83ef53ffc91cb40dc412d225d3b55bcdf143ae57fc240a45457502f80479b7fd",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -9.12,
+        "rms_dbfs": -21.97,
+        "dc_offset": -0.0,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 967,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "upgrade",
+      "path": "res://assets/audio/upgrade.wav",
+      "role": "sfx",
+      "description": "Успешное улучшение симбионта: тёплое восходящее органическое созвучие.",
+      "seconds": 1.35,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "e325609308fae3383f49269b543ad91e44e865addf5d59e31adda3ad6b48221e",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -8.18,
+        "rms_dbfs": -22.67,
+        "dc_offset": 0.0,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 893,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "objective",
+      "path": "res://assets/audio/objective.wav",
+      "role": "sfx",
+      "description": "Выполнение обязательной цели: три ясных гармонических импульса.",
+      "seconds": 1.55,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "116f69787cc480496772952dcf671ea7a4fae10452f21a842f5b30c0f5824560",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -7.33,
+        "rms_dbfs": -19.69,
+        "dc_offset": 0.0,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 1239,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "success",
+      "path": "res://assets/audio/success.wav",
+      "role": "sfx",
+      "description": "Возврат с успешной миссии: сдержанное минорное разрешение.",
+      "seconds": 2.5,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "56b7cb614cb95866bf8641053cf734197a37f7de5e71946b9104f412acc6b0c5",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -6.38,
+        "rms_dbfs": -18.92,
+        "dc_offset": -0.0,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 1366,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "ui",
+      "path": "res://assets/audio/ui.wav",
+      "role": "sfx",
+      "description": "Короткое подтверждение кнопки без резкого щелчка.",
+      "seconds": 0.1,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "5fc1fecfd16ccbbbb056653fb099b1d2cb3949ab3052ee69997a223a5221c9b2",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -12.77,
+        "rms_dbfs": -25.11,
+        "dc_offset": -2e-07,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 1050,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "organ",
+      "path": "res://assets/audio/organ.wav",
+      "role": "sfx",
+      "description": "Контакт с живым органом: низкий органический резонанс и мягкий влажный отклик без речи.",
+      "seconds": 1.5,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "866d7b55d6c5f65875fdf5b5eb0986d6cf707d4c17f8bda30d162fd27be8d89c",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -7.54,
+        "rms_dbfs": -22.56,
+        "dc_offset": -0.0,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 710,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "boss",
+      "path": "res://assets/audio/boss.wav",
+      "role": "sfx",
+      "description": "Появление стража: низкое тревожное созвучие, распухающий биологический рёв и тяжёлый пульс.",
+      "seconds": 3.1,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": false,
+      "sha256": "5ff8a059b159ee2d022bbbdfe60e4cdc3a57333dcdaa644a3e6054abe3abd6d7",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -5.19,
+        "rms_dbfs": -20.53,
+        "dc_offset": -0.0,
+        "boundary_jump_pcm": 0,
+        "max_adjacent_jump_pcm": 1785,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "alarm",
+      "path": "res://assets/audio/alarm.wav",
+      "role": "sfx",
+      "description": "Плавная двухфазная тревожная сирена лаборатории; включать только при опасности.",
+      "seconds": 1.6,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": true,
+      "sha256": "ed350ecb0904337554ce1e941d469278d1c7648d16e303e7de53a104006ab4f8",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -9.63,
+        "rms_dbfs": -16.2,
+        "dc_offset": -0.0,
+        "boundary_jump_pcm": 43,
+        "max_adjacent_jump_pcm": 1459,
+        "clipped_samples": 0
+      }
+    }
+  ]
+}

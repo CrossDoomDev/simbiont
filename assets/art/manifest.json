@@ -1,0 +1,185 @@
+{
+  "generator": "OpenAI built-in image_gen (five independent transparent sprite requests); deterministic native tile painter",
+  "skill": "C:/Users/Дядька Ромка/.codex/skills/.system/imagegen/SKILL.md",
+  "references": [
+    "docs/references/ref_p09_01.jpeg",
+    "docs/references/ref_p11_00.jpeg",
+    "docs/references/ref_p14_00.jpeg",
+    "docs/references/ref_p16_00.jpeg"
+  ],
+  "style": "Dark detailed pixel-art, black burgundy living chitin, muted olive survivor armor, amber visor, cyan and purple bioluminescence. Orthographic top-down game assets. No physical screens.",
+  "sheets": {
+    "nest.png": {
+      "size": [128, 128],
+      "cell": [128, 128],
+      "notes": "Single separate overhead corrupted organic nest, brilliant red core, black chitin and crimson tendrils."
+    },
+    "hero.png": {
+      "size": [
+        256,
+        256
+      ],
+      "cell": [
+        64,
+        64
+      ],
+      "rows": [
+        "down",
+        "left",
+        "right",
+        "up"
+      ],
+      "columns": [
+        "idle",
+        "walk1",
+        "walk2",
+        "attack"
+      ],
+      "notes": "Front-facing attack uses idle stance; runtime supplies actual directional shot effect. Left-facing attack was mirrored from right-facing source."
+    },
+    "hero_base.png": {
+      "size": [
+        256,
+        256
+      ],
+      "notes": "Same bonded host form; the symbiote remains attached on ship."
+    },
+    "enemies.png": {
+      "size": [
+        256,
+        1024
+      ],
+      "cell": [
+        64,
+        64
+      ],
+      "rows": "typeIndex * 4 + directionIndex; types crawler,shell,ranged,guardian; directions down,left,right,up",
+      "columns": [
+        "idle",
+        "walk1",
+        "walk2",
+        "attack"
+      ],
+      "notes": "Four cardinal overhead silhouette rotations. Gait frames have subtle 3-degree body articulation; runtime also bobs, flashes, and telegraphs."
+    },
+    "enemies_compact.png": {
+      "size": [
+        256,
+        256
+      ],
+      "cell": [
+        64,
+        64
+      ],
+      "rows": [
+        "crawler",
+        "shell",
+        "ranged",
+        "guardian"
+      ],
+      "notes": "Original four generated directional/attack design poses retained as compact review sheet."
+    },
+    "organs.png": {
+      "size": [
+        640,
+        128
+      ],
+      "cell": [
+        128,
+        128
+      ],
+      "columns": [
+        "navigation cyan",
+        "resting bed violet",
+        "ship heart amber",
+        "nutrition orange",
+        "storage green"
+      ],
+      "notes": "Unequal source spacing was measured and corrected during packing."
+    },
+    "props.png": {
+      "size": [
+        512,
+        64
+      ],
+      "cell": [
+        64,
+        64
+      ],
+      "columns": [
+        "hollow stump",
+        "fern bush",
+        "cyan mushrooms",
+        "boulder",
+        "violet mushrooms",
+        "nest",
+        "chitin ribs",
+        "alien canopy"
+      ]
+    },
+    "resources.png": {
+      "size": [
+        128,
+        32
+      ],
+      "cell": [
+        32,
+        32
+      ],
+      "columns": [
+        "biomass",
+        "dense tissue",
+        "energy enzyme",
+        "organic core"
+      ]
+    },
+    "tiles.png": {
+      "size": [
+        256,
+        96
+      ],
+      "cell": [
+        32,
+        32
+      ],
+      "rows": [
+        "8 forest floors",
+        "6 organic floors + 2 organic walls",
+        "4 dirt path floors + 2 rock boundaries + 2 organic walls"
+      ]
+    }
+  },
+  "prompts": [
+    {"asset": "nest", "prompt": "Use case: stylized-concept. Asset type: single production 2D pixel-art enemy NEST sprite with true transparent background, intended to become a 128x128 game sprite. An evil corrupted organic alien nest viewed STRICTLY STRAIGHT DOWN from overhead, orthographic flat top-down video-game projection, not an isometric view, not a perspective illustration. Circular irregular radial mound of blue-black and burgundy chitin plates, twisted red-black glossy fleshy roots curling outward on every side, a cluster of three smaller dark crimson egg sacs and a large intensely glowing bright RED heart core in the center with tiny hot orange fissures. Jagged black bone spines and curved rib-like claws surround the organic core. Dark detailed mature retro pixel art, sharp discrete pixel clusters, rich handcrafted shading, crimson glow limited inside the sprite silhouette, thin amber edge highlights, strongly readable sinister silhouette matching a dark biomechanical alien forest survival game. The nest is low lying on the ground seen from straight overhead, radial footprint, not an upright heart and not a building. Whole nest fits a square with generous 10% transparent margin on all sides. No scene, no floor, no pedestal, no ground shadow, no UI, no labels, no text, no frame or grid. Beautifully detailed clean transparent cutout game asset."},
+    {
+      "asset": "hero",
+      "prompt": "Use case: stylized-concept. Asset type: production pixel-art CHARACTER SPRITESHEET for a dark top-down 2D Godot game. Create one transparent sprite sheet, a strict 4 columns by 4 rows grid of SIXTEEN same-character animation frames, cells evenly sized and all characters centered with generous transparent space, no grid lines, no text. Every frame is a small sharply pixelled 64x64-style hand-painted game sprite (not high resolution painting), olive-black astronaut survivor bonded to glossy purple-black organic symbiote armor, amber visor, cyan light at chest, violet tendrils and right arm grown into an organic violet biopulse cannon. Mood closely resembles dark detailed retro pixel-art alien forest action games: richly shaded charcoal, muted olive armor, tiny golden edge lights, purple fleshy highlights. Strict orthographic overhead 2D game projection, four cardinal directions, NO isometric angle and no dramatic camera. Row1 facing SOUTH / towards bottom; Row2 facing WEST / left; Row3 facing EAST / right; Row4 facing NORTH / away towards top. Columns: 1 neutral idle feet together, 2 walk left foot forward, 3 walk right foot forward, 4 attack arm raised firing one small magenta-white organic muzzle spark. The head/body must stay at identical scale throughout. Small clear feet, readable silhouette, whole character visible in every cell. Body occupies around 65 percent height of each cell. Genuine transparent background. No pedestal, no ground, no floor, no UI, no captions, no drop shadows extending beyond character. Deliver one square sheet of 16 individual separated sprites."
+    },
+    {
+      "asset": "enemies",
+      "prompt": "Use case: stylized-concept. Asset type: pixel-art enemy sprite atlas for dark 2D orthographic top-down alien action game. One square image, exactly 4 columns by 4 rows, sixteen separated same-size cells, transparent background, no text or grid. Every cell is a crisp hand-pixelled 64x64 game enemy sprite centered with margins, limited dark detailed pixel-art palette. Top-down overhead orthographic, NO isometric perspective, no ground. Four rows are four alien species, each with four different slight motion poses across columns: idle, crawl legs left, crawl legs right, attack. Row1: lean purple-black six-legged crawler with long sharp legs, glossy blue-black chitin plates, four bright crimson eyes, small fanged face. Row2: slow broad armored beetle tank, rounded layered blue-black hard shell, orange-red seams, heavy claws, ivory tiny horns. Row3: ranged spitter, glossy violet-black alien with swollen glowing turquoise abdominal gland, four spider legs and little crimson eyes. Row4: huge nest guardian mini-boss, radial black and crimson chitin carapace, eight jagged crab legs, horned organic head, hot amber-red core. The boss fills 85 percent of cell, the normal enemies fill 65-75 percent. Thin dark contours, detailed highlights, menacing distinct readable silhouettes, painterly handmade pixel-art like dark biomechanical survival game references. Genuine transparency; no backgrounds, no labels, no bases, no platforms, no HUD, no environment. Keep every enemy fully within its own evenly sized cell with 12 percent transparent padding."
+    },
+    {
+      "asset": "organs",
+      "prompt": "Use case: stylized-concept. Asset type: production transparent pixel-art atlas of FIVE living spaceship organs, arranged horizontally in EXACTLY five equal-width cells, one row, generous empty transparent gaps. Each organ is a crisp beautifully detailed hand-painted 128x128-style game sprite, strictly orthographic from overhead for a 2D top-down game, no isometric angle. Rich dark biomechanical organic style, no mechanical machines. Glossy burgundy black chitin ribs, fleshy crimson twisting root tendrils, jewel-like translucent organic centers, tiny warm rim highlights, readable floor plan silhouettes. Cell1: navigation organ, a large elongated cyan-turquoise luminous brain pearl cradled in asymmetrical sinew and black-red curling roots; no screens or holograms. Cell2: symbiont upgrade resting bed, an empty deep violet oval fleshy cradle surrounded by dark purple ribs and four brilliant amethyst sacs; no person inside and no capsule or tube. Cell3: ship energy heart, enormous amber-orange glowing faceted heart with red arteries radiating symmetrically outward, ornate dark fleshy ribs surrounding it; the grand centerpiece. Cell4: nutrition chamber, broad organic mound with three bright amber-orange digestive sacs connected by curved burgundy tubes, warm glowing pores. Cell5: storage organ, cluster of four green-turquoise translucent egg sacs cupped in black-red roots, organic seed bank, no crates. Every organ viewed only from above. Whole silhouettes including roots fully contained in their own cell with 10 percent padding. Clearly separate organs, centered, consistent scale. True transparent background, no floor, no UI, no labels, no gridlines, no scene, no pedestal, no shadow panel. Dark mature pixel art, tiny sharp discrete pixel clusters, no blur."
+    },
+    {
+      "asset": "props and resources",
+      "prompt": "Use case: stylized-concept. Asset type: production pixel-art 4x3 evenly-spaced sprite atlas of 12 separated alien forest props and collectible resources for a dark top-down orthographic game. TRUE TRANSPARENT background. Exactly four equal columns and three equal rows. Each object isolated and centered in a separate cell with generous empty padding, NO UI/no grid/no labels. Crisp hand-painted discrete pixels, high detail retro game sprites with charcoal blue-black contours, muted deep teal and violet forest palette, tiny cyan and magenta bioluminescent highlights, reddish organic warm accents. Orthographic OVERHEAD from above, no isometric angle. Row1 col1 twisted black-teal alien stump with a cyan glowing hollow; col2 dense rounded blue-green alien fern bush viewed from above; col3 cluster of five turquoise mushroom caps with bright cyan glowing gills; col4 sharp jagged slate-teal boulder with warm orange mineral veins. Row2 col1 cluster of purple alien mushrooms with bright violet spots; col2 crimson spiny organic nest mound and small orange eggs; col3 curled dark burgundy chitin bone ribs organic ship debris; col4 tall dark alien tree canopy viewed from above as a jagged round teal-black mass, tiny cyan dots and twisting roots. Row3 four collectible icons: col1 glossy red-purple fleshy biomass globule with small red tendrils; col2 folded amber-brown dense chitin tissue plates; col3 bright cyan energy enzyme crystal with organic roots; col4 rare warm magenta-red spherical organic core with amber heart and spikes. Keep props entire and separate. Fine pixel texture, clean transparent silhouettes; no floor, no environmental background, no platform, no shadows stretching into other cells."
+    }
+  ],
+  "sources": [
+    "assets/source/nest-generated.png",
+    "assets/source/hero-generated.png",
+    "assets/source/enemies-generated.png",
+    "assets/source/organs-generated.png",
+    "assets/source/props-generated.png"
+  ],
+  "build": [
+    "C:/Python/python.exe tools/build_tile_art.py",
+    "C:/Python/python.exe tools/assemble_art.py"
+  ],
+  "limitations": [
+    "Screenshot fidelity must be checked from the live Godot level. contact_sheet.png is only an asset inspection sheet."
+  ]
+}

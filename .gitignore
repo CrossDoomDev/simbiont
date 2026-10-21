@@ -1,0 +1,23 @@
+.godot/
+/build/
+/artifacts/*
+!/artifacts/screenshots/
+/artifacts/screenshots/*
+!/artifacts/screenshots/*.png
+
+# Reproducible PDF page renders; keep the PDF and extracted reference illustrations.
+/docs/references/page_*.png*
+/docs/references/contact_*.jpg*
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+node_modules/
+.env
+.env.*
+!.env.example
+*.tmp
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,178 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/art/enemies.png" id="1_5i5lk"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_l24pl"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(192, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5ldij"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(192, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_w7mf8"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(192, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ugwl0"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(192, 192, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_oprbn"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(0, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4ubes"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(0, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mk650"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(0, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_18rqp"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(0, 192, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sfgk3"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(64, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wr6o2"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(128, 0, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fuhyk"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(64, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_euv2l"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(128, 64, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_mwaf6"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(64, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7vbs8"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(128, 128, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2gryv"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(64, 192, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_i2dg2"]
+atlas = ExtResource("1_5i5lk")
+region = Rect2(128, 192, 64, 64)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_l24pl")
+}],
+"loop": 1,
+"name": &"attack_0",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5ldij")
+}],
+"loop": 1,
+"name": &"attack_1",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_w7mf8")
+}],
+"loop": 1,
+"name": &"attack_2",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ugwl0")
+}],
+"loop": 1,
+"name": &"attack_3",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_oprbn")
+}],
+"loop": 1,
+"name": &"idle_0",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4ubes")
+}],
+"loop": 1,
+"name": &"idle_1",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mk650")
+}],
+"loop": 1,
+"name": &"idle_2",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_18rqp")
+}],
+"loop": 1,
+"name": &"idle_3",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sfgk3")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wr6o2")
+}],
+"loop": 1,
+"name": &"walk_0",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fuhyk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_euv2l")
+}],
+"loop": 1,
+"name": &"walk_1",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_mwaf6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7vbs8")
+}],
+"loop": 1,
+"name": &"walk_2",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2gryv")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_i2dg2")
+}],
+"loop": 1,
+"name": &"walk_3",
+"speed": 8.0
+}]

@@ -1,0 +1,38 @@
+name: Godot validation
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: godot-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GODOT_VERSION: 4.7.1
+      GODOT_INSTALL_DIR: ${{ runner.temp }}/godot-bin
+      XDG_DATA_HOME: ${{ runner.temp }}/symbiont-user-data
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install Godot and asset tooling
+        shell: bash
+        run: |
+          bash tools/setup_cloud.sh
+          echo "$GODOT_INSTALL_DIR" >> "$GITHUB_PATH"
+          python3 -m pip install --requirement tools/requirements.txt
+      - name: Import, compile, test gameplay and validate art
+        shell: bash
+        run: bash tools/check_cloud.sh

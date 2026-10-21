@@ -1,0 +1,178 @@
+[gd_resource type="SpriteFrames" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/art/enemies.png" id="1_mdiub"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_sr70u"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(192, 768, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jlyuy"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(192, 832, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_jnf8x"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(192, 896, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_w1ve4"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(192, 960, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o3aba"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(0, 768, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bhk1c"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(0, 832, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_whndd"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(0, 896, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3uu2x"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(0, 960, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pxln2"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(64, 768, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3jh0j"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(128, 768, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1fkph"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(64, 832, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_oox3k"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(128, 832, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gai8d"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(64, 896, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_kc74h"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(128, 896, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xo712"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(64, 960, 64, 64)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_amhuu"]
+atlas = ExtResource("1_mdiub")
+region = Rect2(128, 960, 64, 64)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_sr70u")
+}],
+"loop": 1,
+"name": &"attack_0",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jlyuy")
+}],
+"loop": 1,
+"name": &"attack_1",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_jnf8x")
+}],
+"loop": 1,
+"name": &"attack_2",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_w1ve4")
+}],
+"loop": 1,
+"name": &"attack_3",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o3aba")
+}],
+"loop": 1,
+"name": &"idle_0",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bhk1c")
+}],
+"loop": 1,
+"name": &"idle_1",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_whndd")
+}],
+"loop": 1,
+"name": &"idle_2",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3uu2x")
+}],
+"loop": 1,
+"name": &"idle_3",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pxln2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3jh0j")
+}],
+"loop": 1,
+"name": &"walk_0",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1fkph")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_oox3k")
+}],
+"loop": 1,
+"name": &"walk_1",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gai8d")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_kc74h")
+}],
+"loop": 1,
+"name": &"walk_2",
+"speed": 8.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xo712")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_amhuu")
+}],
+"loop": 1,
+"name": &"walk_3",
+"speed": 8.0
+}]
