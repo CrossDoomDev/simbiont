@@ -45,6 +45,8 @@ func _cleanup_files() -> void:
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(scratch_path + suffix))
 
 func _run() -> void:
+	# Disabled canvas stretching follows the real Window; headless starts at 64px.
+	root.size = Vector2i(1280,720)
 	progress = root.get_node("Progress")
 	var original_path: String = progress.save_path
 	var original_document: Dictionary = progress.call("_document")
@@ -111,6 +113,13 @@ func _run() -> void:
 	var resumed: Vector2 = game.player.position
 	await create_timer(0.15).timeout
 	check(game.player.position.distance_to(resumed) < 0.1 and not game.player.manual_fire, "resume cannot revive stale movement or firing")
+	_touch(0, Vector2(110,600), true)
+	_drag(0, Vector2(160,600), Vector2(50,0))
+	root.size = Vector2i(960,540)
+	await _frames()
+	check(controls.left_id == -1 and controls.left_value == Vector2.ZERO and controls.right_center.x == 850.0, "resizing cancels held gestures and repositions the sticks")
+	root.size = Vector2i(1280,720)
+	await _frames()
 	game.ui.automatic_touch = false
 	progress.settings["touch"] = false
 	await _frames()

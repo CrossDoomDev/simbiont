@@ -1,0 +1,50 @@
+{
+  "generator": "OpenAI image_gen",
+  "sources": [
+    "assets/source/ui-panel-generated.png",
+    "assets/source/ui-button-generated.png",
+    "assets/source/ui-backdrop-generated.png"
+  ],
+  "requests": [
+    {
+      "asset": "panel",
+      "prompt": "Production game UI asset, ONE square expandable organic interface panel frame for an original dark symbiote game. Symmetrical functional rectangular panel, outer frame made of purple-black glossy chitin plates, burgundy fleshy sinew and delicate violet capillaries, tiny amber and cyan bioluminescent accent nodes at corners. Beautiful detailed dark pixel-art shading matching a top-down alien survivor game. Rounded organic corners with substantial sculpted chitin, thin irregular tendrils confined to outer border. Center 75 percent of width and height must be a flat nearly black plum solid opaque surface (#140e1b), completely EMPTY and smooth for readable text. All decoration confined to the narrow perimeter, edges straight enough for a 9-slice UI texture. No text, no symbols, no buttons, no scene, no perspective, no wires or machines, no labels, no shadows outside. Flat orthographic FRONT view of the UI asset, exact square, full frame wholly visible, small genuinely transparent margin outside the silhouette. Frame looks like living armor, not metal, no excessive horns crossing into center. Designed to be split into nine patches so corners remain fixed and the empty center expands."
+    },
+    {
+      "asset": "button",
+      "prompt": "ONE standalone game interface BUTTON skin, a wide horizontal rounded rectangle approximately 4:1 aspect ratio, front-facing flat orthographic UI texture, on genuine transparent background. Original dark symbiote game style: purple-black glossy chitin capsule frame, asymmetrical tiny burgundy tendrils hugging ends, subtle violet fleshy rim, two tiny luminous magenta organic pores near left and right end. Dark muted plum smooth center EMPTY for a text label, almost black #201329. Crisp detailed dark pixel-art clusters with subtle wet highlights. Frame stays confined to outer edge, center is plain and readable. No text or typography, no symbols, no labels, no extra buttons, no background scene, no metal or sci-fi screens, no perspective. Whole rectangular button contained with transparent margins. Suitable for scalable 9-slice UI, corners and sculpted ends should remain fixed while center stretches."
+    },
+    {
+      "asset": "backdrop",
+      "prompt": "Wide 16:9 original game main-menu background artwork for SYMBIOTE themed dark top-down alien survivor game, no text, no user interface, no frames. Rich dark detailed pixel art, beautifully atmospheric. Interior of a living alien spacecraft grown from purple-black chitin and burgundy organic ribs. Composition: LEFT HALF is very dark subdued empty shadow with faint fine veins for placing readable menu text; RIGHT HALF has an evocative luminous organic heart/cradle with amber core, intertwined violet tendrils, cyan bioluminescent nodes and branching wet vascular membranes. The organism is one living ship, no machines, no computer screens, no humanoid companion, no portals, no technology panels. Strong chiaroscuro, mostly deep plum, charcoal and muted wine, small amber and cyan focal accents, extremely restrained glow. Mature high quality dark retro game pixel art with clean discrete clusters, no photorealism, no gore, no writing. Organic neural network branches naturally across the lower area; the edges stay shadowy so this can cover different viewport aspect ratios by cropping. Render as a fully opaque complete illustration."
+    }
+  ],
+  "build": "python tools/build_ui_art.py",
+  "nine_patch": {
+    "panel": {
+      "size": [
+        128,
+        128
+      ],
+      "borders": [
+        22,
+        22,
+        22,
+        22
+      ]
+    },
+    "button": {
+      "size": [
+        384,
+        96
+      ],
+      "borders": [
+        54,
+        18,
+        54,
+        18
+      ]
+    }
+  },
+  "layout": "Window dimensions drive anchors, flow, column count and vertical scrolling. UI is rendered at native window size; minimum window 640x360."
+}

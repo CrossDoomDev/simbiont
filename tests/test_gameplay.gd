@@ -323,7 +323,7 @@ func _run() -> void:
 		var enemies_before: int = get_nodes_in_group("enemies").size() + game.pending_nest_enemies.size()
 		objective.take_damage(9999.0)
 		var released: int = get_nodes_in_group("enemies").size() + game.pending_nest_enemies.size() - enemies_before
-		check(released == (1 if game.nodes_destroyed == 2 else 9 + game.mission_id * 3), "destroyed nest releases exactly one boss or a full ordinary pack")
+		check(released == (1 if game.mission_id == 1 or game.nodes_destroyed == 2 else 9), "destroyed nest releases exactly one boss or a full ordinary pack")
 	check(game.nodes_destroyed == 3 and game.objective_complete(), "three destroyed nests complete first mission")
 	check(game.mode == "mission" and game.ui.page == "", "completed objective leaves mission running")
 	check(game.boss_spawned and not game.boss_defeated, "second nest awakens optional first-biome guardian")
@@ -364,15 +364,23 @@ func _run() -> void:
 		var enemies_before: int = get_nodes_in_group("enemies").size() + game.pending_nest_enemies.size()
 		objective.take_damage(9999.0)
 		var released: int = get_nodes_in_group("enemies").size() + game.pending_nest_enemies.size() - enemies_before
-		check(released == (1 if game.nodes_destroyed == 2 else 9 + game.mission_id * 3), "destroyed nest releases exactly one boss or a full ordinary pack")
+		check(released == (1 if game.mission_id == 1 or game.nodes_destroyed == 2 else 9), "destroyed nest releases exactly one boss or a full ordinary pack")
 	check(game.nodes_destroyed == 3 and not game.objective_complete(), "second biome still requires guardian after three nodes")
 	game.ui.open_pause()
 	unavailable = _buttons(game.ui.modal_root, "Завершить миссию")
 	check(unavailable.size() == 1 and unavailable[0].disabled, "second-biome return remains locked while guardian lives")
 	game.ui.close()
+	var guardians: Array[Node] = []
 	for guardian: Node in get_nodes_in_group("enemies"):
 		if str(guardian.kind) == "guardian":
-			guardian.take_damage(99999.0)
+			guardians.append(guardian)
+	check(guardians.size() == 3 and game.bosses_spawned == 3, "each swamp nest releases its own guardian")
+	for index: int in guardians.size():
+		guardians[index].take_damage(99999.0)
+		check(game.bosses_defeated == index + 1, "guardian deaths are counted individually")
+		if index < 2:
+			check(not game.objective_complete() and not game.boss_defeated, "one or two guardian deaths cannot complete the swamp")
+			check(str(root.get_node("Audio").get("_context")) == "boss" or root.get_node("Audio").get("_music_players").is_empty(), "boss music stays active while another guardian lives")
 	check(game.boss_defeated and game.objective_complete(), "guardian death completes second-biome objective")
 	var core_dropped: bool = false
 	for drop: Node in get_nodes_in_group("loot"):

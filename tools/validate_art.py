@@ -10,7 +10,7 @@ for name,config in manifest["sheets"].items():
     im=Image.open(art/name)
     assert list(im.size)==config["size"],(name,im.size,config["size"])
     assert im.mode=="RGBA",(name,im.mode)
-    if name!="tiles.png": assert im.getchannel("A").getextrema()==(0,255),(name,"alpha")
+    if config.get("transparent", name != "tiles.png"): assert im.getchannel("A").getextrema()==(0,255),(name,"alpha")
     if "cell" in config:
         w,h=config["cell"]
         assert im.width%w==0 and im.height%h==0

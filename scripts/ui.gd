@@ -1,10 +1,11 @@
 extends CanvasLayer
 
-const BG := Color("0d1921")
-const BORDER := Color("29414a")
+const BioSkin = preload("res://scripts/ui_skin.gd")
+const BG := Color("140e1b")
+const BORDER := Color("68416f")
 const TEXT := Color("e5eee6")
-const MUTED := Color("91aaa9")
-const ACCENT := Color("99e5c4")
+const MUTED := Color("b4a1b7")
+const ACCENT := Color("dca7ec")
 var game: Node
 var root: Control
 var hud: Control
@@ -22,6 +23,20 @@ var page := ""
 var toast_time := 0.0
 var automatic_touch := false
 var overlay_content: VBoxContainer
+var top_panel: PanelContainer
+var hp_panel: PanelContainer
+var task_panel: PanelContainer
+var minimap: Control
+var hud_title: Label
+var overlay_panel: PanelContainer
+var overlay_scroll: ScrollContainer
+var overlay_header: HBoxContainer
+var overlay_width := 980.0
+var overlay_left := false
+var upgrade_grid: GridContainer
+var layout_dirty := true
+var last_layout_size := Vector2.ZERO
+var last_touch_layout := false
 var regular: Font = preload("res://assets/fonts/regular.tres")
 var bold: Font = preload("res://assets/fonts/semibold.tres")
 
@@ -39,6 +54,7 @@ func _ready() -> void:
 	theme.default_font = regular
 	theme.default_font_size = 18
 	theme.set_color("font_color","Label",TEXT)
+	BioSkin.apply(theme)
 	root.theme = theme
 	add_child(root)
 	_build_hud()
@@ -47,8 +63,7 @@ func _ready() -> void:
 	modal_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(modal_root)
 	toast_label = label("",18,ACCENT)
-	toast_label.position = Vector2(340,105)
-	toast_label.size = Vector2(600,42)
+	toast_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	toast_label.add_theme_color_override("font_shadow_color",Color.BLACK)
 	toast_label.add_theme_constant_override("shadow_outline_size",8)
@@ -70,32 +85,26 @@ func paragraph(value: String, font_size: int = 18, color: Color = MUTED) -> Labe
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return l
 
-func style(color: Color = BG, border: Color = BORDER, corner: int = 10) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = color
-	s.border_color = border
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(corner)
-	s.set_content_margin_all(18)
-	return s
+func style(color: Color = BG, _border: Color = BORDER, _corner: int = 10) -> StyleBox:
+	return BioSkin.panel(color.a)
 
 func button(value: String, callback: Callable, primary: bool = false) -> Button:
 	var b := Button.new()
 	b.text = value
-	b.custom_minimum_size = Vector2(0,46)
+	b.clip_text = true
+	b.custom_minimum_size = Vector2(minf(320, regular.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,17).x + 52),54)
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	b.add_theme_stylebox_override("normal",style(Color("244b43") if primary else Color("172a32"),Color("659c83") if primary else BORDER,7))
-	b.add_theme_stylebox_override("hover",style(Color("355b51"),Color("9ce3c5"),7))
-	b.add_theme_stylebox_override("pressed",style(Color("406e5a"),ACCENT,7))
-	b.add_theme_stylebox_override("disabled",style(Color("15222a"),Color("23323a"),7))
-	for state in ["normal","hover","pressed","disabled"]:
-		var box: StyleBoxFlat = b.get_theme_stylebox(state).duplicate()
-		box.content_margin_top = 9
-		box.content_margin_bottom = 9
-		b.add_theme_stylebox_override(state,box)
-	b.add_theme_color_override("font_color",TEXT)
-	b.add_theme_color_override("font_disabled_color",Color("566c71"))
+	b.add_theme_stylebox_override("normal", BioSkin.button(Color(1.16, 1.03, 1.2) if primary else Color.WHITE))
+	if value == "×":
+		b.custom_minimum_size.x = 58
+		for state: String in ["normal", "hover", "pressed", "disabled"]:
+			var close_style: StyleBox = b.get_theme_stylebox(state).duplicate()
+			close_style.content_margin_left = 12
+			close_style.content_margin_right = 12
+			b.add_theme_stylebox_override(state,close_style)
 	b.add_theme_font_size_override("font_size",17)
+	b.add_theme_color_override("font_color",TEXT)
+	b.add_theme_color_override("font_disabled_color",Color("837189"))
 	b.pressed.connect(func():
 		Audio.play_sfx("ui")
 		callback.call())
@@ -107,87 +116,124 @@ func _box(parent: Node, separation: int = 12) -> VBoxContainer:
 	parent.add_child(v)
 	return v
 
+func _hud_style() -> StyleBoxTexture:
+	var box := BioSkin.panel(0.96)
+	box.content_margin_top = 14
+	box.content_margin_bottom = 14
+	return box
+
 func _build_hud() -> void:
 	hud = Control.new()
+	hud.name = "SymbioteHUD"
 	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hud.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(hud)
-	var top := PanelContainer.new()
-	top.position = Vector2(24,20)
-	top.size = Vector2(1232,65)
-	var top_style := style(Color(0.035,0.075,0.09,0.92))
-	top_style.content_margin_top = 9
-	top_style.content_margin_bottom = 9
-	top.add_theme_stylebox_override("panel",top_style)
-	hud.add_child(top)
+	top_panel = PanelContainer.new()
+	top_panel.name = "ResourceMembrane"
+	top_panel.add_theme_stylebox_override("panel", _hud_style())
+	hud.add_child(top_panel)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation",22)
-	top.add_child(row)
-	var title := label("С И М Б И О Н Т",21,ACCENT)
-	title.custom_minimum_size.x = 220
-	row.add_child(title)
-	for i in 4:
+	row.add_theme_constant_override("separation",12)
+	top_panel.add_child(row)
+	hud_title = label("СИМБИОНТ",21,ACCENT)
+	hud_title.custom_minimum_size.x = 172
+	row.add_child(hud_title)
+	for i: int in 4:
+		var resource := HBoxContainer.new()
+		resource.add_theme_constant_override("separation",5)
+		resource.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(resource)
 		var icon := TextureRect.new()
 		icon.texture = BioVisual.atlas("res://assets/art/resources.png",Vector2i(32,32),Vector2i(i,0))
-		icon.custom_minimum_size = Vector2(27,27)
+		icon.custom_minimum_size = Vector2(24,24)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.tooltip_text = GameData.RESOURCES[i]["name"]
-		row.add_child(icon)
-		var count := label("0",20,GameData.RESOURCES[i]["color"])
-		count.custom_minimum_size.x = 56
-		row.add_child(count)
+		resource.add_child(icon)
+		var count := label("0",17,GameData.RESOURCES[i]["color"])
+		count.custom_minimum_size.x = 34
+		resource.add_child(count)
 		resource_labels.append(count)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer)
-	row.add_child(button("Ⅱ  Меню",func(): open_pause()))
-	var hp_panel := PanelContainer.new()
-	hp_panel.position = Vector2(24,621)
-	hp_panel.size = Vector2(278,75)
-	hp_panel.add_theme_stylebox_override("panel",style(Color(0.035,0.075,0.09,0.93)))
+	row.add_child(button("Ⅱ Меню",func(): open_pause()))
+	hp_panel = PanelContainer.new()
+	hp_panel.name = "HostVitals"
+	hp_panel.add_theme_stylebox_override("panel", _hud_style())
 	hud.add_child(hp_panel)
 	var hp_box := _box(hp_panel,6)
 	hp_label = label("НОСИТЕЛЬ     100 / 100",14)
 	hp_box.add_child(hp_label)
 	hp_bar = ProgressBar.new()
-	hp_bar.custom_minimum_size = Vector2(240,8)
+	hp_bar.custom_minimum_size = Vector2(0,9)
 	hp_bar.show_percentage = false
-	for pair in [["background",Color("352c39")],["fill",Color("ce6478")]]:
-		var bar_style := style(pair[1],Color.TRANSPARENT,4)
-		bar_style.set_content_margin_all(0)
-		hp_bar.add_theme_stylebox_override(pair[0],bar_style)
+	hp_bar.add_theme_stylebox_override("background", BioSkin.fluid(Color("311b36")))
+	hp_bar.add_theme_stylebox_override("fill", BioSkin.fluid(Color("d17baf")))
 	hp_box.add_child(hp_bar)
-	var task_panel := PanelContainer.new()
-	task_panel.position = Vector2(935,103)
-	task_panel.size = Vector2(320,92)
-	task_panel.add_theme_stylebox_override("panel",style(Color(0.035,0.075,0.09,0.88)))
+	task_panel = PanelContainer.new()
+	task_panel.name = "NeuralObjective"
+	task_panel.add_theme_stylebox_override("panel", _hud_style())
 	hud.add_child(task_panel)
 	var task_box := _box(task_panel,5)
 	status_label = label("ЖИВОЙ КОРАБЛЬ",12,ACCENT)
 	task_box.add_child(status_label)
-	objective_label = label("Найдите навигационный узел",17)
+	objective_label = paragraph("Найдите навигационный узел",16,TEXT)
 	task_box.add_child(objective_label)
 	hint_label = label("WASD — движение   ·   E — контакт",14,MUTED)
-	hint_label.position = Vector2(353,666)
-	hint_label.size = Vector2(570,30)
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_label.add_theme_color_override("font_shadow_color",Color.BLACK)
 	hint_label.add_theme_constant_override("shadow_outline_size",8)
 	hud.add_child(hint_label)
 	interact_button = button("E   Коснуться органа",func(): game.interact(),true)
-	interact_button.position = Vector2(467,595)
-	interact_button.size = Vector2(350,50)
 	interact_button.visible = false
 	hud.add_child(interact_button)
-	var minimap: Control = load("res://scripts/minimap.gd").new()
+	minimap = load("res://scripts/minimap.gd").new()
+	minimap.name = "NeuralMinimap"
 	minimap.game = game
-	minimap.position = Vector2(1080,532)
-	minimap.size = Vector2(174,136)
 	hud.add_child(minimap)
 	touch = load("res://scripts/touch.gd").new()
 	touch.game = game
 	hud.add_child(touch)
+
+func _layout() -> void:
+	var view: Vector2 = root.size
+	var edge: float = 16.0 if view.x < 900 else 24.0
+	top_panel.position = Vector2(edge, 12)
+	top_panel.size = Vector2(view.x - edge * 2, 80)
+	hud_title.visible = view.x >= 1040
+	var compact: bool = view.y < 520
+	hp_panel.size = Vector2(228 if view.x < 900 else 278, 82)
+	hp_panel.position = Vector2(edge, 104 if touch.visible and compact else view.y - (280 if touch.visible else 100))
+	task_panel.size = Vector2(250 if view.x < 900 else 330, 102 if compact else 120)
+	task_panel.position = Vector2(view.x - edge - task_panel.size.x, 104)
+	hint_label.visible = not touch.visible and view.x >= 1100 and view.y >= 600
+	hint_label.position = Vector2((view.x - 610) * 0.5, view.y - 52)
+	hint_label.size = Vector2(610,30)
+	var action_width: float = view.x - (372.0 if touch.visible and view.x < 900 else edge * 2.0)
+	interact_button.size = Vector2(minf(350, action_width),50)
+	interact_button.position = Vector2((view.x - interact_button.size.x) * 0.5, view.y - 125)
+	minimap.size = Vector2(180,148)
+	minimap.position = Vector2(view.x - edge - minimap.size.x, view.y - (368 if touch.visible else 190))
+	minimap.set_meta("compact_hidden", compact)
+	toast_label.position = Vector2(edge + 12, 97)
+	toast_label.size = Vector2(view.x - edge * 2 - 24, 52)
+	touch.layout_for_view(view)
+	_fit_overlay()
+	last_layout_size = view
+	last_touch_layout = touch.visible
+
+func _fit_overlay() -> void:
+	if not is_instance_valid(overlay_panel) or not is_instance_valid(overlay_content):
+		return
+	var view: Vector2 = root.size
+	var width: float = minf(overlay_width, view.x - 32.0)
+	if is_instance_valid(upgrade_grid):
+		upgrade_grid.columns = 1 if width < 790.0 else 2
+	var header_height: float = overlay_header.get_combined_minimum_size().y + 14.0 if is_instance_valid(overlay_header) else 0.0
+	var height: float = minf(overlay_content.get_combined_minimum_size().y + 48.0 + header_height, view.y - 32.0)
+	overlay_panel.size = Vector2(width, maxf(100.0,height))
+	overlay_panel.position = Vector2(24 if overlay_left and view.x >= 1000 else (view.x - width) * 0.5, (view.y - overlay_panel.size.y) * 0.5)
+
+func _request_layout() -> void:
+	layout_dirty = true
 
 func refresh_hud() -> void:
 	if not is_instance_valid(game) or not is_instance_valid(game.player):
@@ -213,11 +259,13 @@ func _process(delta: float) -> void:
 	hp_bar.value = host.hp
 	if game.mode == "mission":
 		status_label.text = "%s    ·    %02d:%02d" % ["ЛЕС" if game.mission_id == 0 else "ТОПИ",int(game.run_time)/60,int(game.run_time)%60]
-		objective_label.text = "Гнездовые узлы   %d / 3" % game.nodes_destroyed
+		objective_label.text = "Узлы   %d / 3" % game.nodes_destroyed
+		if game.mission_id == 1:
+			objective_label.text += "   ·   Стражи %d / 3" % game.bosses_defeated
 		if game.objective_complete():
 			objective_label.text = "Цель выполнена  ·  Esc → выход"
 		elif game.mission_id == 1 and game.nodes_destroyed == 3:
-			objective_label.text = "Уничтожьте стража"
+			objective_label.text = "Стражи   %d / 3" % game.bosses_defeated
 		hint_label.text = "WASD — движение    ·    Мышь — огонь    ·    Esc — меню"
 	else:
 		status_label.text = "ЖИВОЙ КОРАБЛЬ    ·    СЕРДЦЕ %d / IV" % Progress.modules.get("heart",0)
@@ -227,14 +275,9 @@ func _process(delta: float) -> void:
 	if interact_button.visible:
 		interact_button.text = "E   " + str(game.near_organ.get_meta("label"))
 	touch.visible = (automatic_touch or bool(Progress.settings.get("touch",false))) and not game.modal
-	if touch.visible:
-		hint_label.visible = false
-		hp_label.get_parent().get_parent().position = Vector2(24,440)
-		hud.get_child(hud.get_child_count()-2).position = Vector2(1080,352)
-	else:
-		hint_label.visible = true
-		hp_label.get_parent().get_parent().position = Vector2(24,621)
-		hud.get_child(hud.get_child_count()-2).position = Vector2(1080,532)
+	if layout_dirty or last_layout_size != root.size or last_touch_layout != touch.visible:
+		layout_dirty = false
+		_layout()
 	toast_time -= delta
 	toast_label.visible = toast_time>0 and not game.modal
 
@@ -243,6 +286,12 @@ func toast(text: String) -> void:
 	toast_time = 4.2
 
 func clear_overlay() -> void:
+	overlay_panel = null
+	overlay_scroll = null
+	overlay_header = null
+	overlay_content = null
+	upgrade_grid = null
+	overlay_left = false
 	for child in modal_root.get_children():
 		modal_root.remove_child(child)
 		child.queue_free()
@@ -255,64 +304,63 @@ func close() -> void:
 func overlay(title: String, subtitle: String = "", width: float = 980) -> VBoxContainer:
 	clear_overlay()
 	game.set_modal(true)
+	overlay_width = width
 	var dim := ColorRect.new()
-	dim.color = Color(0.015,0.025,0.04,0.82)
+	dim.color = Color(0.025,0.01,0.035,0.79)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	modal_root.add_child(dim)
-	var center := CenterContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	modal_root.add_child(center)
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(width,0)
-	panel.add_theme_stylebox_override("panel",style(Color("0d1b24"),Color("37505a"),14))
-	center.add_child(panel)
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left",12)
-	margin.add_theme_constant_override("margin_right",12)
-	margin.add_theme_constant_override("margin_top",10)
-	margin.add_theme_constant_override("margin_bottom",10)
-	panel.add_child(margin)
-	overlay_content = _box(margin,14)
-	var header := HBoxContainer.new()
-	overlay_content.add_child(header)
-	var heading := label(title,30)
-	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(heading)
-	if page not in ["title", "death"]:
-		header.add_child(button("×",func(): close()))
+	overlay_panel = PanelContainer.new()
+	overlay_panel.name = "OrganicMenu"
+	overlay_panel.add_theme_stylebox_override("panel",BioSkin.panel())
+	modal_root.add_child(overlay_panel)
+	var shell := _box(overlay_panel,14)
+	overlay_scroll = ScrollContainer.new()
+	overlay_scroll.name = "MenuScroll"
+	overlay_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	overlay_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	overlay_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	shell.add_child(overlay_scroll)
+	overlay_content = _box(overlay_scroll,14)
+	overlay_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	overlay_content.minimum_size_changed.connect(_request_layout)
+	if title != "":
+		var header := HBoxContainer.new()
+		overlay_header = header
+		shell.add_child(header)
+		shell.move_child(header,0)
+		var heading := paragraph(title,30,TEXT)
+		header.add_child(heading)
+		if page not in ["title", "death"]:
+			header.add_child(button("×",func(): close()))
 	if subtitle != "":
 		overlay_content.add_child(paragraph(subtitle,16))
+	layout_dirty = true
 	return overlay_content
 
 func open_title() -> void:
 	page = "title"
-	clear_overlay()
-	game.set_modal(true)
-	var shade := ColorRect.new()
-	shade.color = Color(0.01,0.025,0.035,0.76)
-	shade.position = Vector2(0,0)
-	shade.size = Vector2(680,720)
-	modal_root.add_child(shade)
-	var v := VBoxContainer.new()
-	v.position = Vector2(72,137)
-	v.size = Vector2(500,490)
-	v.add_theme_constant_override("separation",18)
-	modal_root.add_child(v)
-	v.add_child(label("О Д Н А   С В Я З Ь .   Д В Е   Ж И З Н И .",13,ACCENT))
-	v.add_child(label("СИМБИОНТ",64))
-	v.add_child(paragraph("Чужая планета. Раненый корабль.\nВы — его последний шанс проснуться.",22,Color("c0d0ca")))
-	var spacer := Control.new()
-	spacer.custom_minimum_size.y = 20
-	v.add_child(spacer)
+	var v := overlay("", "",560)
+	overlay_left = true
+	var background := TextureRect.new()
+	background.name = "LivingMembraneBackdrop"
+	background.texture = BioSkin.BACKDROP
+	background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	modal_root.add_child(background)
+	modal_root.move_child(background,0)
+	modal_root.get_child(1).color = Color(0.02,0.005,0.025,0.24)
+	v.add_child(paragraph("О Д Н А   С В Я З Ь .   Д В Е   Ж И З Н И .",13,ACCENT))
+	v.add_child(label("СИМБИОНТ",54))
+	v.add_child(paragraph("Чужая планета. Раненый корабль.\nВы — его последний шанс проснуться.",21,TEXT))
 	v.add_child(button("Продолжить связь" if Progress.completed>0 else "Установить связь",func():
 		close()
 		if not Progress.tutorial:
 			open_tutorial(),true))
 	v.add_child(button("Настройки",func(): open_settings(true)))
-	v.add_child(label("ВЫЖИВАНИЕ   /   ВОССТАНОВЛЕНИЕ   /   СВЯЗЬ",12,MUTED))
-	var foot := label("Носитель и симбионт неразделимы.",15,MUTED)
-	foot.position = Vector2(72,668)
-	modal_root.add_child(foot)
+	v.add_child(paragraph("ВЫЖИВАНИЕ / ВОССТАНОВЛЕНИЕ / СВЯЗЬ",12,MUTED))
+	v.add_child(paragraph("Носитель и симбионт неразделимы.",15,MUTED))
 
 func open_tutorial() -> void:
 	page = "tutorial"
@@ -327,13 +375,16 @@ func open_tutorial() -> void:
 func open_map() -> void:
 	page = "map"
 	var v := overlay("Нейронная карта", "Сигналы планеты, воспринятые через симбионта. Выберите точку вылазки.")
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation",24)
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation",20)
+	row.add_theme_constant_override("v_separation",16)
 	v.add_child(row)
 	var map: Control = load("res://scripts/map_visual.gd").new()
+	map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(map)
 	var missions := _box(row,14)
 	missions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	missions.custom_minimum_size.x = 340
 	for i in 2:
 		var data: Dictionary = GameData.MISSIONS[i]
 		var card := PanelContainer.new()
@@ -341,7 +392,7 @@ func open_map() -> void:
 		missions.add_child(card)
 		var box := _box(card,7)
 		box.add_child(label("0%d  /  %s" % [i+1,data["biome"]],12,ACCENT if i == 0 else Color("d49bbf")))
-		box.add_child(label(data["name"],24))
+		box.add_child(paragraph(data["name"],24,TEXT))
 		box.add_child(paragraph(data["description"],15))
 		var available: bool = Progress.mission_unlocked(i)
 		var launch := button("Начать миссию  →" if available else "Закрыто · сердце корабля II",func(): game.start_mission(i),available)
@@ -357,7 +408,7 @@ func open_pause() -> void:
 		finish.disabled = not game.objective_complete()
 		v.add_child(finish)
 		if finish.disabled:
-			v.add_child(paragraph("Для возвращения уничтожьте все гнездовые узлы" + (" и стража." if game.mission_id==1 else "."),16))
+			v.add_child(paragraph("Для возвращения уничтожьте все гнездовые узлы" + (" и всех трёх стражей." if game.mission_id==1 else "."),16))
 	v.add_child(button("Настройки",func(): open_settings()))
 	if game.mode == "ship":
 		v.add_child(button("Главное меню",func(): open_title()))
@@ -383,6 +434,7 @@ func open_upgrades(ship: bool = false) -> void:
 	page = "modules" if ship else "upgrades"
 	var v := overlay("Пробуждение корабля" if ship else "Анатомия симбионта", "Ресурсы хранилища общие для корабля и носителя. Изменения сохраняются сразу.")
 	var grid := GridContainer.new()
+	upgrade_grid = grid
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation",16)
 	grid.add_theme_constant_override("v_separation",14)
@@ -395,12 +447,12 @@ func open_upgrades(ship: bool = false) -> void:
 		var max_level: int = int(data["max_level"])
 		var cost: Array = GameData.module_cost(id,level) if ship else GameData.upgrade_cost(id,level)
 		var card := PanelContainer.new()
-		card.custom_minimum_size = Vector2(445,0)
+		card.custom_minimum_size = Vector2(230,0)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.add_theme_stylebox_override("panel",style(Color("15262f"),Color(data["color"],0.4)))
 		grid.add_child(card)
 		var box := _box(card,7)
-		box.add_child(label(data["name"],21,data["color"]))
+		box.add_child(paragraph(data["name"],21,data["color"]))
 		box.add_child(label("● ".repeat(level) + "○ ".repeat(max_level-level),17,data["color"]))
 		box.add_child(paragraph(data["description"],15))
 		box.add_child(paragraph(costs(cost),14,MUTED))
@@ -475,7 +527,8 @@ func open_settings(from_title: bool = false) -> void:
 		var toggle := CheckButton.new()
 		toggle.text = pair[1]
 		toggle.button_pressed = bool(Progress.settings.get(pair[0],false))
-		toggle.custom_minimum_size.y = 38
+		toggle.custom_minimum_size.y = 48
+		toggle.clip_text = true
 		toggle.toggled.connect(func(value: bool):
 			Progress.settings[pair[0]] = value
 			Progress.save_game())

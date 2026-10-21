@@ -15,6 +15,8 @@ var run_id := ""
 var nodes_destroyed := 0
 var boss_spawned := false
 var boss_defeated := false
+var bosses_spawned := 0
+var bosses_defeated := 0
 var spawn_clock := 1.0
 var pending_nest_enemies: Array[Dictionary] = []
 var shake := 0.0
@@ -184,6 +186,8 @@ func start_mission(id: int) -> void:
 	nodes_destroyed = 0
 	boss_spawned = false
 	boss_defeated = false
+	bosses_spawned = 0
+	bosses_defeated = 0
 	spawn_clock = 1.0
 	run_id = "%s_%s" % [Time.get_unix_time_from_system(),rng.randi()]
 	for i in int(GameData.MISSIONS[id]["nodes"]):
@@ -209,7 +213,7 @@ func _fade(alpha: float) -> void:
 	fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE if alpha == 0 else Control.MOUSE_FILTER_STOP
 
 func objective_complete() -> bool:
-	return nodes_destroyed>=int(GameData.MISSIONS[mission_id]["nodes"]) and (mission_id==0 or boss_defeated)
+	return nodes_destroyed>=int(GameData.MISSIONS[mission_id]["nodes"]) and (mission_id == 0 or bosses_defeated >= int(GameData.MISSIONS[mission_id]["nodes"]))
 
 func finish_mission(success: bool) -> void:
 	if mode != "mission" or transitioning or (success and not objective_complete()):
@@ -300,11 +304,11 @@ func wave_size() -> int:
 	return mini(int(GameData.WAVES["maximum_size"]), int(GameData.WAVES["initial_size"]) + int(run_time / float(GameData.WAVES["size_step_seconds"])))
 
 func _release_nest_enemies() -> void:
-	# Leave one slot for the unique guardian. Packs wait for room rather than
+	# Reserve one guardian in the forest and all three in the swamp. Packs wait rather than
 	# disappearing when the population cap is reached or spawning inside walls.
 	var population: int = get_tree().get_nodes_in_group("enemies").size()
 	for i: int in mini(12, pending_nest_enemies.size()):
-		if population >= GameData.MAX_ENEMIES - 1:
+		if population >= GameData.MAX_ENEMIES - maxi(0, (3 if mission_id == 1 else 1) - bosses_spawned):
 			return
 		var entry: Dictionary = pending_nest_enemies[0]
 		var clearance: float = float(GameData.ENEMIES[entry.kind]["radius"]) + 6.0
@@ -384,8 +388,15 @@ func _enemy_died(enemy: BioActor) -> void:
 	var loot: Array = GameData.ENEMIES[enemy.kind]["loot"]
 	_drop_loot(enemy.position,loot)
 	if enemy.kind == "guardian":
-		boss_defeated = true
-		if mode == "mission":
+		if bool(enemy.get_meta("mission_guardian", false)):
+			bosses_defeated += 1
+		boss_defeated = bosses_defeated >= (3 if mission_id == 1 else 1)
+		var remaining := false
+		for other: BioActor in get_tree().get_nodes_in_group("enemies"):
+			if other != enemy and other.kind == "guardian" and not other.dead:
+				remaining = true
+				break
+		if mode == "mission" and not remaining:
 			Audio.set_context("mission")
 		Audio.play_sfx("objective")
 		ui.toast("Страж уничтожен. Органическое ядро выпало на землю.")
@@ -414,15 +425,17 @@ func nest_destroyed(nest: BioNest) -> void:
 	Audio.play_sfx("objective")
 	shake = 8
 	_drop_loot(nest.position,[12,3,4,0])
-	if nodes_destroyed>=2 and not boss_spawned:
+	if mission_id == 1 or (nodes_destroyed >= 2 and not boss_spawned):
 		boss_spawned = true
+		bosses_spawned += 1
 		var position := nest.position
 		for attempt: int in 64:
 			var point: Vector2 = nest.position + Vector2.RIGHT.rotated(rng.randf() * TAU) * rng.randf_range(70.0, 180.0)
 			if world.is_walkable(point, 55.0) and point.distance_to(player.position) > 120.0:
 				position = point
 				break
-		spawn_enemy("guardian",position)
+		var guardian := spawn_enemy("guardian",position)
+		guardian.set_meta("mission_guardian", true)
 		Audio.play_sfx("boss")
 		ui.toast("Из опухоли вырвался искажённый страж!")
 	else:

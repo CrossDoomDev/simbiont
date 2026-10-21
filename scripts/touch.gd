@@ -1,5 +1,6 @@
 extends Control
 
+const BioSkin = preload("res://scripts/ui_skin.gd")
 var game: Node
 var left_id := -1
 var right_id := -1
@@ -13,6 +14,17 @@ func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	visibility_changed.connect(_cancel_if_inactive)
+
+func layout_for_view(view: Vector2) -> void:
+	var compact: bool = view.y < 600
+	var new_left := Vector2(110, view.y - (90 if compact else 120))
+	var new_right := Vector2(view.x - 110, new_left.y)
+	if new_left != left_center or new_right != right_center:
+		cancel_touches()
+	radius = 54.0 if compact else 65.0
+	left_center = Vector2(110, view.y - (90 if compact else 120))
+	right_center = Vector2(view.x - 110, left_center.y)
+	queue_redraw()
 
 func cancel_touches() -> void:
 	left_id = -1
@@ -63,8 +75,9 @@ func _draw() -> void:
 	for i in 2:
 		var c := left_center if i == 0 else right_center
 		var v := left_value if i == 0 else right_value
-		draw_circle(c,radius,Color(0.04,0.08,0.1,0.38))
-		draw_arc(c,radius,0,TAU,48,Color(0.7,0.9,0.85,0.3),1.5)
-		draw_circle(c+v*radius*0.7,23,Color(0.7,0.9,0.85,0.25))
+		draw_style_box(BioSkin.panel(0.66),Rect2(c-Vector2.ONE*(radius+10),Vector2.ONE*(radius+10)*2))
+		draw_circle(c,radius,Color(0.12,0.04,0.16,0.38))
+		draw_arc(c,radius,0,TAU,48,Color(0.8,0.5,0.9,0.5),1.5)
+		draw_circle(c+v*radius*0.7,23,Color(0.83,0.55,0.95,0.4))
 		if i == 1:
-			draw_arc(c,10,0,TAU,20,Color(0.8,0.9,0.9,0.65),1)
+			draw_arc(c,10,0,TAU,20,Color(0.95,0.7,0.98,0.85),1)

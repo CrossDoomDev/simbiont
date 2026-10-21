@@ -1,21 +1,22 @@
 extends Control
 
+const BioSkin = preload("res://scripts/ui_skin.gd")
 var game: Node
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	custom_minimum_size = Vector2(174,136)
+	custom_minimum_size = Vector2(160,124)
 
 func _process(_delta: float) -> void:
-	visible = not game.modal
+	visible = not game.modal and not bool(get_meta("compact_hidden", false))
 	queue_redraw()
 
 func _draw() -> void:
-	if not visible or not is_instance_valid(game.world):
+	if not visible or not is_instance_valid(game.world) or not is_instance_valid(game.player):
 		return
 	var box := Rect2(Vector2.ZERO,size)
 	draw_style_box(_panel(),box)
-	var inner := Rect2(12,12,size.x-24,size.y-24)
+	var inner := Rect2(24,24,size.x-48,size.y-48)
 	if game.mode == "ship":
 		var map_scale: Vector2 = inner.size / game.world.bounds.size
 		for cell: Vector2i in game.world.floor_map.get_used_cells():
@@ -38,10 +39,5 @@ func _draw() -> void:
 	draw_circle(host,4,Color("b0ffe1"))
 	draw_arc(host,8,0,TAU,16,Color(0.5,0.9,0.75,0.4),1)
 
-func _panel() -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color(0.025,0.065,0.08,0.88)
-	s.border_color = Color("29434a")
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(8)
-	return s
+func _panel() -> StyleBox:
+	return BioSkin.panel(0.96)
