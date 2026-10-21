@@ -206,7 +206,7 @@ func _run() -> void:
 	check(progress.tutorial and not game.modal, "tutorial callback saves completion and releases control")
 	check(game.world.organs.size() == 5, "ship has all five organic interactions")
 	check(game.world.floor_map is TileMapLayer and game.world.walls is TileMapLayer, "ship uses native tilemap layers")
-	check(game.player.anim is AnimatedSprite2D and game.player.anim.sprite_frames.get_frame_count("walk_0") == 2, "host uses native two-frame walk animation")
+	check(game.player.legs_anim is AnimatedSprite2D and game.player.legs_anim.sprite_frames.get_frame_count("walk_0") == 2, "host uses native two-frame walk animation")
 	await _frames()
 	var start: Vector2 = game.player.position
 	game.player.move_input = Vector2.RIGHT

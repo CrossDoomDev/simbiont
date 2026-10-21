@@ -67,14 +67,14 @@ func _run() -> void:
 		game.player.set_physics_process(true)
 		await physics_frame
 		await physics_frame
-		var first_frame: int = game.player.anim.frame
+		var first_frame: int = game.player.legs_anim.frame
 		var changed: bool = false
 		for tick: int in range(20):
 			await physics_frame
-			if game.player.anim.frame != first_frame:
+			if game.player.legs_anim.frame != first_frame:
 				changed = true
 				break
-		if not changed or game.player.anim.animation != "walk_%d" % facing or game.player.anim.flip_h:
+		if not changed or game.player.legs_anim.animation != "walk_%d" % facing or game.player.legs_anim.flip_h:
 			push_error("WALK_VIEWPORT_FAILED: direction " + str(facing))
 			failures += 1
 		await _capture("16_host_walk_" + ["down", "left", "right", "up"][facing])

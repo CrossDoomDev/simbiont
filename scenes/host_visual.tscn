@@ -1,0 +1,27 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="SpriteFrames" path="res://assets/animations/host_combat.tres" id="1_frames"]
+[ext_resource type="Shader" path="res://assets/shaders/host_body_layer.gdshader" id="2_cutout"]
+
+[sub_resource type="ShaderMaterial" id="LegsMaterial"]
+shader = ExtResource("2_cutout")
+shader_parameter/lower_body = true
+
+[sub_resource type="ShaderMaterial" id="UpperMaterial"]
+shader = ExtResource("2_cutout")
+shader_parameter/lower_body = false
+
+[node name="HostVisual" type="Node2D"]
+
+[node name="LowerBody" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+material = SubResource("LegsMaterial")
+sprite_frames = ExtResource("1_frames")
+animation = &"idle_0"
+
+[node name="UpperBody" type="AnimatedSprite2D" parent="."]
+texture_filter = 1
+z_index = 1
+material = SubResource("UpperMaterial")
+sprite_frames = ExtResource("1_frames")
+animation = &"idle_0"

@@ -21,8 +21,10 @@ var dead := false
 var row := 0
 var radius := 14.0
 var attack_interval := 0.42
-var armed_walk := false
-var armed_walk_material: ShaderMaterial
+var legs_anim: AnimatedSprite2D
+var host_visual: Node2D
+var leg_clock := 0.0
+var leg_facing := 0
 var anim: AnimatedSprite2D
 var body_shape: CollisionShape2D
 var flash: Tween
@@ -76,8 +78,6 @@ func _ready() -> void:
 	circle.radius = radius
 	body_shape.shape = circle
 	add_child(body_shape)
-	anim = AnimatedSprite2D.new()
-	anim.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var sprite_path: String = "res://assets/art/hero.png" if kind == "host" else "res://assets/art/enemies.png"
 	if kind == "host" and game != null and str(game.get("mode")) != "mission" and ResourceLoader.exists("res://assets/art/hero_base.png"):
 		sprite_path = "res://assets/art/hero_base.png"
@@ -85,15 +85,20 @@ func _ready() -> void:
 		var enemy_texture: Texture2D = load(sprite_path) as Texture2D
 		_directional_enemy_atlas = enemy_texture != null and enemy_texture.get_height() >= 1024
 	var frames_path: String = "res://assets/animations/" + ("host_base" if sprite_path.ends_with("hero_base.png") else ("host_combat" if kind == "host" else "enemy_" + kind)) + ".tres"
-	if ResourceLoader.exists(frames_path):
-		anim.sprite_frames = load(frames_path) as SpriteFrames
-	else:
-		anim.sprite_frames = create_sprite_frames(sprite_path, kind)
+	var frames: SpriteFrames = load(frames_path) if ResourceLoader.exists(frames_path) else create_sprite_frames(sprite_path,kind)
 	if kind == "host":
-		armed_walk_material = ShaderMaterial.new()
-		armed_walk_material.shader = preload("res://assets/shaders/host_armed_walk.gdshader")
-		anim.material = armed_walk_material
-	add_child(anim)
+		host_visual = preload("res://scenes/host_visual.tscn").instantiate()
+		add_child(host_visual)
+		anim = host_visual.get_node("UpperBody")
+		legs_anim = host_visual.get_node("LowerBody")
+		anim.sprite_frames = frames
+		legs_anim.sprite_frames = frames
+		legs_anim.pause()
+	else:
+		anim = AnimatedSprite2D.new()
+		anim.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		anim.sprite_frames = frames
+		add_child(anim)
 	if kind == "guardian":
 		anim.scale = Vector2.ONE * 1.8
 		BioVisual.add_glow(self, Color(0.85, 0.14, 0.3, 0.65), 230)
@@ -146,32 +151,42 @@ func _physics_process(delta: float) -> void:
 	else:
 		_enemy_tick(delta)
 	move_and_slide()
-	var direction: Vector2 = aim
-	var facing := 0
-	if absf(direction.x) > absf(direction.y):
-		facing = 2 if direction.x > 0 else 1
-	elif direction.y < 0:
-		facing = 3
-	var state := "walk" if velocity.length_squared() > 4 else "idle"
-	if (kind == "host" and game.mode == "mission" and attack_pose_remaining > 0.0) or (kind != "host" and shot_clock > attack_interval - 0.12):
-		state = "attack"
-	armed_walk = kind == "host" and state == "attack" and velocity.length_squared() > 4.0
-	if armed_walk_material != null:
-		armed_walk_material.set_shader_parameter("armed_walk",armed_walk)
-	var next_animation := "%s_%d" % ["walk" if armed_walk else state, facing]
-	# A new facing is a new animation in Godot; preserve the ongoing gait rather
-	# than restarting its first step whenever mouse/autofire aim changes.
-	var preserve_gait: bool = kind == "host" and anim.animation.begins_with("walk_") and next_animation.begins_with("walk_") and anim.animation != next_animation
-	var gait_frame: int = anim.frame
-	var gait_progress: float = anim.frame_progress
-	anim.play(next_animation)
-	if preserve_gait:
-		anim.set_frame_and_progress(gait_frame,gait_progress)
-	var moving: bool = velocity.length_squared() > 4.0
-	var bob: float = sin(age * (6.0 if moving else 2.4)) * (1.2 if kind == "host" else 1.8)
-	var recoil: float = clampf((shot_clock - attack_interval + 0.09) / 0.09,0.0,1.0) * 1.6 if kind == "host" and attack_pose_remaining > 0.0 else 0.0
-	anim.position = Vector2(0,bob) - aim * recoil
+	if kind == "host":
+		_update_host_visual(delta)
+	else:
+		var facing: int = _facing(aim)
+		var state := "walk" if velocity.length_squared() > 4 else "idle"
+		if shot_clock > attack_interval - 0.12:
+			state = "attack"
+		anim.play("%s_%d" % [state,facing])
+		anim.position.y = sin(age * (6.0 if state == "walk" else 2.4)) * 1.8
 	queue_redraw()
+
+static func _facing(direction: Vector2) -> int:
+	if absf(direction.x) > absf(direction.y):
+		return 2 if direction.x > 0 else 1
+	return 3 if direction.y < 0 else 0
+
+func _update_host_visual(delta: float) -> void:
+	var moving: bool = velocity.length_squared() > 4.0
+	# Legs have their own physical clock and movement facing. Aim/fire never
+	# change their phase, animation direction, or playback state.
+	if moving:
+		leg_facing = _facing(velocity)
+		leg_clock = fposmod(leg_clock + delta,0.25)
+		legs_anim.animation = "walk_%d" % leg_facing
+		legs_anim.pause()
+		var step: float = leg_clock * 8.0
+		legs_anim.set_frame_and_progress(int(step),fposmod(step,1.0))
+	else:
+		legs_anim.animation = "idle_%d" % leg_facing
+		legs_anim.pause()
+		legs_anim.set_frame_and_progress(0,0.0)
+	var firing: bool = game.mode == "mission" and attack_pose_remaining > 0.0
+	anim.play("%s_%d" % ["attack" if firing else "idle",_facing(aim)])
+	host_visual.position.y = sin(age * (6.0 if moving else 2.4)) * 1.2
+	var recoil: float = clampf((shot_clock - attack_interval + 0.09) / 0.09,0.0,1.0) * 1.6 if firing else 0.0
+	anim.position = -aim * recoil
 
 func _host_tick(delta: float) -> void:
 	if dead:
@@ -383,9 +398,10 @@ func take_damage(amount: float) -> void:
 	game.float_text(global_position + Vector2(0, -30), str(int(ceil(dealt))), Color("fa7a86") if kind == "host" else Color("e9e7ba"))
 	if is_instance_valid(flash):
 		flash.kill()
-	anim.modulate = Color(3, 0.6, 0.7)
+	var flash_target: CanvasItem = host_visual if kind == "host" else anim
+	flash_target.modulate = Color(3, 0.6, 0.7)
 	flash = create_tween()
-	flash.tween_property(anim, "modulate", Color.WHITE, 0.16)
+	flash.tween_property(flash_target, "modulate", Color.WHITE, 0.16)
 	if kind == "host":
 		invulnerable = 0.55
 		regen_delay_remaining = float(GameData.REGEN["damage_delay"])

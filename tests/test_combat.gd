@@ -51,6 +51,7 @@ func _actor(kind: String, point: Vector2) -> Node2D:
 
 func _host_pose_checks() -> void:
 	var host: Node2D = arena.player
+	check(host.anim != host.legs_anim and host.anim.get_parent() == host.legs_anim.get_parent(), "upper and lower body are separate sibling AnimatedSprite2D nodes")
 	host.manual_fire = true
 	host.manual_aim = Vector2.RIGHT
 	host.shot_clock = 0.0
@@ -58,21 +59,22 @@ func _host_pose_checks() -> void:
 	check(host.anim.animation == "attack_2" and is_equal_approx(host.attack_pose_remaining,1.0), "shot raises arm for one second")
 	host.manual_fire = false
 	host._physics_process(0.30)
-	check(host.anim.animation == "attack_2" and not host.armed_walk, "stationary arm stays raised between ordinary shots")
+	check(host.anim.animation == "attack_2" and host.legs_anim.animation == "idle_0", "stationary arm stays raised between ordinary shots")
 	host.move_input = Vector2.DOWN
 	host._physics_process(0.30)
-	check(host.anim.animation == "walk_2" and host.armed_walk and host.velocity.y > 0.0, "moving host keeps armed pose without lowering arm")
+	check(host.anim.animation == "attack_2" and host.legs_anim.animation == "walk_0" and host.velocity.y > 0.0, "moving host keeps armed pose without lowering arm")
 	host.manual_fire = true
 	host._physics_process(0.01)
 	check(is_equal_approx(host.attack_pose_remaining,1.0), "next shot renews full hold duration")
 	host.manual_fire = false
 	host.manual_aim = Vector2.UP
 	host._physics_process(0.30)
-	check(host.anim.animation == "walk_3" and host.armed_walk, "held running pose follows changed aim")
+	check(host.anim.animation == "attack_3" and host.legs_anim.animation == "walk_0", "held running pose follows changed aim")
 	host._physics_process(0.71)
-	check(host.anim.animation == "walk_3" and not host.armed_walk, "one second without shots releases running pose")
+	check(host.anim.animation == "idle_3" and host.legs_anim.animation == "walk_0", "one second without shots releases running pose")
 	host.move_input = Vector2.ZERO
 	host._physics_process(0.01)
+	check(host.legs_anim.animation == "idle_0" and host.legs_anim.frame == 0, "stationary legs use a still frame independently of upper body")
 	check(host.anim.animation == "idle_3", "stationary host returns to idle after hold")
 	host.manual_fire = true
 	host.shot_clock = 0.0
@@ -86,6 +88,29 @@ func _host_pose_checks() -> void:
 	host.position = Vector2.ZERO
 	host.shot_clock = 0.0
 
+func _layer_matrix_checks() -> void:
+	var host: Node2D = arena.player
+	var lower_ok := true
+	var upper_ok := true
+	for movement: Vector2 in [Vector2.ZERO,Vector2.DOWN,Vector2.LEFT,Vector2.RIGHT,Vector2.UP]:
+		for direction: Vector2 in [Vector2.DOWN,Vector2.LEFT,Vector2.RIGHT,Vector2.UP]:
+			for firing: bool in [false,true]:
+				host.move_input = movement
+				host.manual_aim = direction
+				host.manual_fire = firing
+				host.attack_pose_remaining = 0.0
+				host.shot_clock = 0.0
+				host._physics_process(1.0/60.0)
+				var lower_name: String = "idle_%d" % host.leg_facing if movement == Vector2.ZERO else "walk_%d" % host._facing(movement)
+				lower_ok = lower_ok and host.legs_anim.animation == lower_name
+				upper_ok = upper_ok and host.anim.animation == ("attack_%d" if firing else "idle_%d") % host._facing(direction)
+	check(lower_ok,"legs follow movement in all 40 movement/aim/fire combinations")
+	check(upper_ok,"upper body follows aim and fire independently in all 40 combinations")
+	host.manual_fire = false
+	host.move_input = Vector2.ZERO
+	host.attack_pose_remaining = 0.0
+	host.shot_clock = 0.0
+
 func _gait_continuity_checks() -> void:
 	var host: Node2D = arena.player
 	host.move_input = Vector2.DOWN
@@ -95,17 +120,14 @@ func _gait_continuity_checks() -> void:
 	var phase_preserved := true
 	for tick: int in 40:
 		host.manual_aim = [Vector2.RIGHT,Vector2.UP,Vector2.LEFT,Vector2.DOWN][tick % 4]
-		var previous_frame: int = host.anim.frame
-		var previous_progress: float = host.anim.frame_progress
-		var was_walking: bool = host.anim.animation.begins_with("walk_")
+		var previous_clock: float = host.leg_clock
 		host._physics_process(1.0 / 60.0)
-		if was_walking:
-			phase_preserved = phase_preserved and host.anim.frame == previous_frame and is_equal_approx(host.anim.frame_progress,previous_progress)
+		phase_preserved = phase_preserved and is_equal_approx(host.leg_clock,fposmod(previous_clock+1.0/60.0,0.25)) and host.legs_anim.animation == "walk_0"
 		await physics_frame
 		await process_frame
-		second_step_seen = second_step_seen or host.anim.frame == 1
+		second_step_seen = second_step_seen or host.legs_anim.frame == 1
 	check(second_step_seen, "steps keep advancing when aiming direction switches every physics tick")
-	check(phase_preserved, "all four aim changes preserve both gait frame and fractional progress")
+	check(phase_preserved, "leg clock and movement facing remain independent of all four aim directions")
 	host.manual_fire = false
 	host.manual_aim = Vector2.ZERO
 	host.move_input = Vector2.ZERO
@@ -326,6 +348,7 @@ func _run() -> void:
 	arena.player = _actor("host", Vector2(500, 400))
 	await _frames()
 	_host_pose_checks()
+	_layer_matrix_checks()
 	await _gait_continuity_checks()
 	_regen_checks()
 	await _guardian_checks()
