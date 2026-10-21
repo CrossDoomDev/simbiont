@@ -10,32 +10,32 @@
     "loop": "stream.loop_mode = AudioStreamWAV.LOOP_FORWARD; stream.loop_begin = 0; stream.loop_end = int(stream.get_length() * stream.mix_rate)",
     "play": "AudioStreamPlayer.stream = stream; AudioStreamPlayer.play()",
     "recommended_db": {
-      "music": -8,
+      "music_default": -4.8,
       "ambient": -19,
       "sfx": -6,
       "alarm": -13
     },
-    "note": "Loop hub, mission, ambient and alarm only. Stop/pause background AudioStreamPlayers when the game loses focus."
+    "note": "Loop hub, mission, boss_music, ambient and alarm only. Music uses a 0–100% saved volume slider; 0 pauses music."
   },
   "assets": [
     {
       "name": "mission",
       "path": "res://assets/audio/mission.wav",
       "role": "music",
-      "description": "Оригинальная 72-секундная музыка: низкие минорные подкладки, сдвоенный пульс, далёкие стеклянные обертоны; 80 BPM.",
-      "seconds": 72.0,
+      "description": "Боевой саундтрек, 120 BPM: плотный синкопированный бас, тяжёлый пульс, органическая перкуссия и тревожная минорная тема; 24 такта.",
+      "seconds": 48.0,
       "sample_rate": 44100,
       "channels": 2,
       "bits": 16,
       "loop": true,
-      "sha256": "9c7ccbc3ad76cb9f54c17223d9115cc46a59fce2808066e5ea4b539c614e7f94",
+      "sha256": "b576179bedaca538e3e27c0acb0343a2dece7263074d844c32c450f64178f486",
       "verification": {
         "complete_pcm_read": true,
-        "peak_dbfs": -8.4,
-        "rms_dbfs": -22.12,
-        "dc_offset": 0.0001844,
-        "boundary_jump_pcm": 28,
-        "max_adjacent_jump_pcm": 288,
+        "peak_dbfs": -2.62,
+        "rms_dbfs": -17.79,
+        "dc_offset": 0.0010843,
+        "boundary_jump_pcm": 22,
+        "max_adjacent_jump_pcm": 7626,
         "clipped_samples": 0
       }
     },
@@ -43,20 +43,41 @@
       "name": "hub",
       "path": "res://assets/audio/hub.wav",
       "role": "music",
-      "description": "Приглушённый эмбиент живого корабля: низкое дыхание тканей, тёмные гармоники и далёкие обертоны без речи.",
+      "description": "Слышимая тема живого корабля: дыхание тканей, тёплые средние гармоники и медленная стеклянная мелодия без речи.",
       "seconds": 72.0,
       "sample_rate": 44100,
       "channels": 2,
       "bits": 16,
       "loop": true,
-      "sha256": "7316f4dcb7565696de2c8e2792563b4bf1b967e28251fc5c30784b3caa3032c8",
+      "sha256": "771749f825a1dc7f91e19fbf51d7fc965854076c5605aa9a3ddf39492718526b",
       "verification": {
         "complete_pcm_read": true,
-        "peak_dbfs": -9.9,
-        "rms_dbfs": -21.88,
-        "dc_offset": -3e-07,
-        "boundary_jump_pcm": 27,
-        "max_adjacent_jump_pcm": 113,
+        "peak_dbfs": -3.35,
+        "rms_dbfs": -15.12,
+        "dc_offset": 2.64e-05,
+        "boundary_jump_pcm": 138,
+        "max_adjacent_jump_pcm": 624,
+        "clipped_samples": 0
+      }
+    },
+    {
+      "name": "boss_music",
+      "path": "res://assets/audio/boss_music.wav",
+      "role": "music",
+      "description": "Музыка боя со стражем, 144 BPM: ускоренный бас, дополнительный ударный пульс, октавная тревожная тема; 24 такта.",
+      "seconds": 40.0,
+      "sample_rate": 44100,
+      "channels": 2,
+      "bits": 16,
+      "loop": true,
+      "sha256": "fe7093f6c576c8f26535a89ce1cce9906cf84d2c512796f319b15b9b89e52a92",
+      "verification": {
+        "complete_pcm_read": true,
+        "peak_dbfs": -2.62,
+        "rms_dbfs": -17.36,
+        "dc_offset": 0.0016626,
+        "boundary_jump_pcm": 74,
+        "max_adjacent_jump_pcm": 6515,
         "clipped_samples": 0
       }
     },

@@ -85,7 +85,12 @@ def pack(cells, size, name, limits=None):
             sprite=fit(cell,round(size*padding),round(size*padding))
             sheet.alpha_composite(sprite,(x*size+(size-sprite.width)//2,
                                           y*size+(size-sprite.height)//2))
-    sheet.save(OUT / name)
+    # Do not rewrite unchanged art just because a Pillow/libpng version encodes
+    # identical pixels differently. This keeps focused animation edits reviewable.
+    destination = OUT / name
+    previous = Image.open(destination).convert("RGBA") if destination.exists() else None
+    if previous is None or previous.size != sheet.size or previous.tobytes() != sheet.tobytes():
+        sheet.save(destination)
     return sheet
 
 def main():
@@ -104,6 +109,16 @@ def main():
         # Godot renders the biopulse flash and projectile in the actual aim direction.
         cells[1][3]=ImageOps.mirror(cells[2][3])
         cells[0][3]=cells[0][0].copy()
+        # The original generated south walk2 swaps the human and symbiote arms.
+        # Use a dedicated corrected source pose; never reflect the full host to
+        # animate a step, since its anatomical right arm is deliberately unique.
+        corrected_down = SRC / "hero-down-walk-generated.png"
+        if corrected_down.exists():
+            replacement = clean_detached(Image.open(corrected_down).convert("RGBA"))
+            box = replacement.getchannel("A").point(lambda a:255 if a>36 else 0).getbbox()
+            if not box:
+                raise ValueError("Corrected south-walk source has no visible character")
+            cells[0][2] = replacement.crop(box)
         sheets["hero"]=pack(cells,64,"hero.png")
         sheets["hero"].save(OUT / "hero_base.png")
     if (SRC / "enemies-generated.png").exists():

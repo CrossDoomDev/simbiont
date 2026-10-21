@@ -139,10 +139,10 @@ func _run() -> void:
 	await _seconds(0.2)
 	check(game.player.position.distance_to(start) > 20.0, "host moves through ship with real physics ticks (distance %.2f)" % game.player.position.distance_to(start))
 	game.player.move_input = Vector2.ZERO
-	game.player.position = Vector2(768, 200)
+	game.player.position = Vector2(1024, 380)
 	game.player.move_input = Vector2.UP
 	await _seconds(0.8)
-	check(game.player.position.y > 140.0, "native wall collision stops host leaving ship")
+	check(game.player.position.y > 300.0 and game.player.position.y < 370.0, "native wall collision stops host at the heart hall membrane")
 	game.player.move_input = Vector2.ZERO
 	var expected_pages: Dictionary = {"navigation": "map", "symbiont": "upgrades", "heart": "heart", "feeding": "modules", "storage": "storage"}
 	for organ: Node2D in game.world.organs:
@@ -237,7 +237,9 @@ func _run() -> void:
 	_mutations(["regen"])
 	game.player.hp = 60.0
 	game.player._host_tick(2.0)
-	check(game.player.hp >= 63.0, "regeneration mutation heals in mission time")
+	check(is_equal_approx(game.player.hp, 60.0), "recent damage blocks regeneration during combat")
+	game.player._host_tick(float(GameData.REGEN["damage_delay"]))
+	check(game.player.hp > 60.0 and game.player.hp < 61.0, "regeneration resumes slowly after the no-damage delay")
 	_mutations(["chain"])
 	var chain_first: Node2D = game.spawn_enemy("crawler", game.player.position + Vector2(130, 0))
 	var chain_second: Node2D = game.spawn_enemy("crawler", game.player.position + Vector2(230, 0))

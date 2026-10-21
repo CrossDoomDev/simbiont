@@ -12,9 +12,13 @@ if grep -Eq '^ERROR:|SCRIPT ERROR:|Parse Error:|Compile Error:' artifacts/ci/imp
     exit 1
 fi
 
-for test_name in check_scripts test_progress test_gameplay test_touch; do
-    "$godot_bin" --headless --path . --script "res://tests/${test_name}.gd" 2>&1 | tee "artifacts/ci/${test_name}.log"
-    if grep -Eq 'SCRIPT ERROR:|CHECK FAILED:|GAMEPLAY_CHECK_FAILED:|TOUCH_CHECK_FAILED:' "artifacts/ci/${test_name}.log"; then
+for test_name in check_scripts test_progress test_gameplay test_touch test_ship test_combat test_audio; do
+    extra_args=()
+    if [[ "$test_name" == test_audio ]]; then
+        extra_args=(-- --audio-test)
+    fi
+    "$godot_bin" --headless --path . --script "res://tests/${test_name}.gd" "${extra_args[@]}" 2>&1 | tee "artifacts/ci/${test_name}.log"
+    if grep -Eq '^ERROR:|SCRIPT ERROR:|Parse Error:|Compile Error:|CHECK FAILED:|[A-Z_]+_CHECK_FAILED:' "artifacts/ci/${test_name}.log"; then
         exit 1
     fi
     case "$test_name" in
@@ -22,7 +26,16 @@ for test_name in check_scripts test_progress test_gameplay test_touch; do
         test_progress) marker='PROGRESS_TESTS'; unit='checks' ;;
         test_gameplay) marker='GAMEPLAY_TESTS'; unit='checks' ;;
         test_touch) marker='TOUCH_TESTS'; unit='checks' ;;
+        test_ship) marker='SHIP_TESTS'; unit='checks' ;;
+        test_combat) marker='COMBAT_TESTS'; unit='checks' ;;
+        test_audio) marker='AUDIO_TESTS'; unit='checks' ;;
     esac
     grep -Eq "^${marker}: [1-9][0-9]* ${unit}, 0 failures$" "artifacts/ci/${test_name}.log"
 done
 python3 tools/validate_art.py | tee artifacts/ci/art.log
+python3 tools/check_host_animation.py | tee artifacts/ci/host_animation.log
+"$godot_bin" --headless --path . -- --runtime-test 2>&1 | tee artifacts/ci/runtime.log
+if grep -Eq '^ERROR:|SCRIPT ERROR:|Parse Error:|Compile Error:' artifacts/ci/runtime.log; then
+    exit 1
+fi
+grep -Eq '^RUNTIME_TESTS: [1-9][0-9]* checks, 0 failures$' artifacts/ci/runtime.log

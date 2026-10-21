@@ -7,7 +7,11 @@ func _initialize() -> void:
 
 func _run() -> void:
 	var failures: int = 0
-	var files: Array[String] = ["data", "progress", "audio", "visual", "actor", "projectile", "world", "loot", "nest", "main", "ui", "touch", "map_visual", "minimap"]
+	var files: Array[String] = []
+	for filename: String in DirAccess.get_files_at("res://scripts"):
+		if filename.ends_with(".gd"):
+			files.append(filename.trim_suffix(".gd"))
+	files.sort()
 	for filename: String in files:
 		var script: Script = load("res://scripts/" + filename + ".gd") as Script
 		if script == null or not script.can_instantiate():

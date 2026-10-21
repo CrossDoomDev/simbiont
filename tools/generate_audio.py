@@ -236,32 +236,82 @@ def write_wav(name: str, signal: tuple[array, array], description: str,
     return item
 
 
-def music() -> tuple[array, array]:
-    # 24 bars in 4/4 at 80 BPM. Four evolving 6-bar phrases, 72 seconds.
-    song = zeros(72)
-    # D minor with a suspended E-flat colour and a final A drone: uneasy, quiet.
-    chords = [(73.4162, 110, 174.6141), (65.4064, 98, 146.8324),
-              (58.2705, 87.3071, 130.8128), (55, 82.4069, 123.4708),
-              (73.4162, 110, 164.8138), (77.7817, 116.5409, 174.6141),
-              (58.2705, 87.3071, 146.8324), (55, 82.4069, 130.8128)]
-    for k, chord in enumerate(chords):
-        for j, frequency in enumerate(chord):
-            add(song, pad(frequency, 15.0, 15 + k * 3 + j), k * 9 - 2.5,
-                .085 if j else .12, (-.55, .5, -.1)[j], True)
-    for beat in range(96):
-        time = beat * .75
-        # A restrained paired heartbeat, leaving generous silence between beats.
-        if beat % 4 in (0, 2):
-            add(song, pulse(43.6535, seed=beat + 1), time, .20, -.06, True)
-            add(song, pulse(55, .32, beat + 401), time + .165, .08, .12, True)
-        if beat % 8 == 5:
-            room(song, texture(.17, beat, "slime"), time + .38, .095, .6, True)
-    notes = [293.6648, 349.2282, 440, 523.2511, 349.2282, 293.6648,
-             261.6256, 220, 293.6648, 349.2282, 466.1638, 440,
-             349.2282, 261.6256, 220, 246.9417]
-    for k, note in enumerate(notes):
-        room(song, chime(note, 2.6), k * 4.5 + 1.125, .026,
-             -.6 if k % 2 else .6, True)
+def drive(freq: float, duration: float, bite=.35) -> array:
+    """A short resonant bass/lead voice, with audible upper harmonics."""
+    out = array("f")
+    for i in range(round(duration * RATE)):
+        t = i / RATE
+        phase = TAU * freq * t
+        v = (math.sin(phase) + bite * math.sin(phase * 2)
+             + bite * .48 * math.sin(phase * 3 + .4 * math.exp(-t * 12)))
+        out.append(v * envelope(t, duration, .006, .065)
+                   * (.36 + .64 * math.exp(-t * 6)))
+    return out
+
+
+def percussion(duration: float, seed: int, snare=False) -> array:
+    rng = random.Random(seed)
+    out = array("f")
+    low = 0.0
+    for i in range(round(duration * RATE)):
+        t = i / RATE
+        white = rng.uniform(-1, 1)
+        low += .1 * (white - low)
+        noise = white - low
+        if snare:
+            value = .68 * noise * math.exp(-t * 23)
+            value += .52 * math.sin(TAU * 163 * t) * math.exp(-t * 32)
+        else:
+            value = noise * math.exp(-t * 82)
+        out.append(value * envelope(t, duration, .001, .025))
+    return out
+
+
+def music(*, guardian=False) -> tuple[array, array]:
+    # 24 bars: recognisable rhythmic action rather than a sparse sub-bass drone.
+    # 120 BPM missions / 144 BPM guardian; both wrap at exact bar boundaries.
+    beat = 60 / (144 if guardian else 120)
+    song = zeros(24 * 4 * beat)
+    roots = [73.4162, 65.4064, 58.2705, 55]
+    melody = [0, 7, 12, 10, 7, 3, 5, 7, 0, 7, 15, 12, 10, 7, 3, -2]
+    kick = pulse(48, .3, 450)
+    snare = percussion(.2, 452, True)
+    hat = percussion(.085, 453)
+    for bar in range(24):
+        root = roots[(bar // 2) % len(roots)]
+        start = bar * 4 * beat
+        # Breathing harmonic layer lives in the low mids, so laptop speakers
+        # retain the music even when the sub-bass and deep heartbeat disappear.
+        if bar % 2 == 0:
+            for j, ratio in enumerate([2, 2 ** (3 / 12), 3]):
+                add(song, pad(root * ratio, beat * 10, 800 + bar * 3 + j),
+                    start - beat * 2, (.12, .065, .045)[j],
+                    (-.35, .4, -.15)[j], True)
+        for step in range(8):
+            time = start + step * beat / 2
+            add(song, hat, time, .055 if step % 2 else .035,
+                -.32 if step % 2 else .32, True)
+            # Syncopation leaves clear gaps around the weapon transient.
+            if step in (0, 3, 4, 6) or guardian:
+                freq = root * (2 if step in (3, 7) else 1)
+                add(song, drive(freq, beat * .72, .55), time,
+                    .3 if step % 2 == 0 else .2, -.06, True)
+            if step in (0, 4) or (guardian and step == 7):
+                add(song, kick, time, .52, 0, True)
+            if step in (2, 6):
+                add(song, snare, time, .24, .08, True)
+            # Short rising motif answers every second bar. Boss adds an octave
+            # and a second off-beat voice rather than reusing its spawn sting.
+            if step in (1, 3, 6) and (bar % 4 >= 2 or guardian):
+                note = melody[(bar * 3 + step) % len(melody)]
+                frequency = root * 2 ** ((note + (12 if guardian else 0)) / 12)
+                room(song, drive(frequency * 2, beat * .9, .23), time,
+                     .065 if guardian else .075,
+                     -.45 if step % 3 else .45, True)
+        if bar % 4 == 3:
+            for fill in range(3):
+                add(song, pulse(96 + fill * 24, .16, 720 + fill),
+                    start + beat * (3.25 + fill * .25), .14, -.3 + fill * .3, True)
     return song
 
 
@@ -290,16 +340,19 @@ def ambient() -> tuple[array, array]:
 
 
 def hub() -> tuple[array, array]:
-    # Same harmonic palette as combat, without its rhythm: the ship is breathing.
+    # The ship breathes in the same minor palette, with a readable midrange
+    # melody rather than frequencies that vanish on small speakers.
     track = zeros(72)
-    for k, root in enumerate([36.7081, 32.7032, 43.6535, 36.7081]):
+    for k, root in enumerate([73.4162, 65.4064, 87.3071, 73.4162]):
         for j, ratio in enumerate([1, 2, 3, 4.004]):
             add(track, pad(root * ratio, 25, 610 + k * 4 + j),
-                k * 18 - 3.5, (.19, .095, .035, .021)[j],
+                k * 18 - 3.5, (.16, .105, .06, .035)[j],
                 (-.1, .4, -.65, .6)[j], True)
-    for k in range(8):
-        room(track, chime(146.8324 if k % 3 else 174.6141, 3),
-             5 + k * 9, .011, -.7 if k % 2 else .7, True)
+    motif = [293.6648, 349.2282, 440, 349.2282, 261.6256, 220, 293.6648, 440]
+    for k in range(16):
+        room(track, chime(motif[k % len(motif)], 3.8),
+             1.5 + k * 4.5, .055, -.5 if k % 2 else .5, True)
+        add(track, pulse(65.4064, .5, 910 + k), k * 4.5, .07, 0, True)
     return track
 
 
@@ -336,19 +389,27 @@ def alarm() -> tuple[array, array]:
     return target
 
 
-def main(effects_only=False) -> None:
+def main(effects_only=False, music_only=False) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     manifest = []
     if effects_only:
         previous = json.loads((OUT / "manifest.json").read_text(encoding="utf-8"))
-        manifest.extend(a for a in previous["assets"] if a["name"] in ("hub", "mission", "ambient"))
+        manifest.extend(a for a in previous["assets"] if a["name"] in ("hub", "mission", "boss_music", "ambient"))
     else:
         manifest.append(write_wav("mission", music(),
-        "Оригинальная 72-секундная музыка: низкие минорные подкладки, сдвоенный пульс, далёкие стеклянные обертоны; 80 BPM.",
-        loop=True, peak=.38, role="music"))
+        "Боевой саундтрек, 120 BPM: плотный синкопированный бас, тяжёлый пульс, органическая перкуссия и тревожная минорная тема; 24 такта.",
+        loop=True, peak=.74, role="music"))
         manifest.append(write_wav("hub", hub(),
-        "Приглушённый эмбиент живого корабля: низкое дыхание тканей, тёмные гармоники и далёкие обертоны без речи.",
-        loop=True, peak=.32, role="music"))
+        "Слышимая тема живого корабля: дыхание тканей, тёплые средние гармоники и медленная стеклянная мелодия без речи.",
+        loop=True, peak=.68, role="music"))
+        manifest.append(write_wav("boss_music", music(guardian=True),
+        "Музыка боя со стражем, 144 BPM: ускоренный бас, дополнительный ударный пульс, октавная тревожная тема; 24 такта.",
+        loop=True, peak=.74, role="music"))
+        if music_only:
+            previous = json.loads((OUT / "manifest.json").read_text(encoding="utf-8"))
+            manifest.extend(a for a in previous["assets"] if a["name"] not in ("hub", "mission", "boss_music"))
+            write_manifest(manifest)
+            return
         manifest.append(write_wav("ambient", ambient(),
         "Низкий органический резонанс и редкие влажные капли живого корабля; бесшовный цикл без речи.",
         loop=True, peak=.28, role="ambience"))
@@ -393,6 +454,10 @@ def main(effects_only=False) -> None:
     manifest.append(write_wav("alarm", alarm(),
         "Плавная двухфазная тревожная сирена лаборатории; включать только при опасности.",
         loop=True, peak=.33))
+    write_manifest(manifest)
+
+
+def write_manifest(manifest: list[dict]) -> None:
     result = {
         "title": "Symbiont — original procedural soundtrack and sound design",
         "generator": "tools/generate_audio.py",
@@ -404,8 +469,8 @@ def main(effects_only=False) -> None:
             "load": "var stream = load(\"res://assets/audio/mission.wav\").duplicate() as AudioStreamWAV",
             "loop": "stream.loop_mode = AudioStreamWAV.LOOP_FORWARD; stream.loop_begin = 0; stream.loop_end = int(stream.get_length() * stream.mix_rate)",
             "play": "AudioStreamPlayer.stream = stream; AudioStreamPlayer.play()",
-            "recommended_db": {"music": -8, "ambient": -19, "sfx": -6, "alarm": -13},
-            "note": "Loop hub, mission, ambient and alarm only. Stop/pause background AudioStreamPlayers when the game loses focus."
+            "recommended_db": {"music_default": -4.8, "ambient": -19, "sfx": -6, "alarm": -13},
+            "note": "Loop hub, mission, boss_music, ambient and alarm only. Music uses a 0–100% saved volume slider; 0 pauses music."
         },
         "assets": manifest,
     }
@@ -417,4 +482,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--effects-only", action="store_true",
                         help="Rebuild short sounds while retaining verified long tracks.")
-    main(parser.parse_args().effects_only)
+    parser.add_argument("--music-only", action="store_true",
+                        help="Rebuild hub, battle and guardian music while retaining other sounds.")
+    args = parser.parse_args()
+    if args.effects_only and args.music_only:
+        parser.error("--effects-only and --music-only are mutually exclusive")
+    main(args.effects_only, args.music_only)

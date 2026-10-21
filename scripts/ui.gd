@@ -466,14 +466,22 @@ func open_settings(from_title: bool = false) -> void:
 	page = "settings"
 	var v := overlay("Настройки связи", "Параметры сохраняются на этом устройстве.",700)
 	for pair in [["music","Музыка и атмосфера"],["sfx","Звуки действий"]]:
-		v.add_child(label(pair[1],18))
+		var volume_heading := HBoxContainer.new()
+		var volume_name := label(pair[1],18)
+		volume_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		volume_heading.add_child(volume_name)
+		var percentage := label("%d%%" % roundi(float(Progress.settings.get(pair[0],0.5))*100.0),18,ACCENT)
+		volume_heading.add_child(percentage)
+		v.add_child(volume_heading)
 		var slider := HSlider.new()
+		slider.name = str(pair[0]) + "_volume"
 		slider.min_value = 0
 		slider.max_value = 1
 		slider.step = 0.05
 		slider.value = float(Progress.settings.get(pair[0],0.5))
 		slider.custom_minimum_size.y = 26
 		slider.value_changed.connect(func(value: float):
+			percentage.text = "%d%%" % roundi(value*100.0)
 			Progress.settings[pair[0]] = value
 			Progress.save_game()
 			Audio.update_volumes())

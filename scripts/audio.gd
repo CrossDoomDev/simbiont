@@ -4,6 +4,10 @@ extends Node
 const AUDIO_DIRECTORY: String = "res://assets/audio/"
 const EFFECTS: Array[String] = ["shoot", "hit", "hurt", "enemy_die", "pickup", "ui", "organ", "upgrade", "objective", "success", "boss", "death"]
 const ALIASES: Dictionary = {"click": "ui", "enemy_death": "enemy_die", "damage": "hurt", "loot": "pickup", "buy": "upgrade", "win": "success", "lose": "death", "node": "objective"}
+const MUSIC_STREAMS: Dictionary = {"hub": "hub", "mission": "mission", "boss": "boss_music"}
+# Music was attenuated twice: quiet sub-bass WAVs and another 0.78 mix gain.
+# The new scores carry audible midrange and retain headroom below full scale.
+const MUSIC_GAIN: float = 1.15
 
 var _music_players: Array[AudioStreamPlayer] = []
 var _effects_players: Array[AudioStreamPlayer] = []
@@ -19,8 +23,9 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	# Automated headless checks have no audible output device.
-	if DisplayServer.get_name() == "headless":
+	# Ordinary headless gameplay checks skip audio. The explicit mixer test uses
+	# the real AudioServer/Dummy mixer and captures its output, without a device.
+	if DisplayServer.get_name() == "headless" and not "--audio-test" in OS.get_cmdline_user_args():
 		return
 	_rng.randomize()
 	for i: int in range(2):
@@ -88,13 +93,15 @@ func play_sfx(name: String) -> void:
 	selected.play()
 
 func set_context(context: String) -> void:
-	var next_context: String = "mission" if context in ["mission", "combat", "forest", "swamp", "boss"] else "hub"
+	var next_context: String = "boss" if context == "boss" else ("mission" if context in ["mission", "combat", "forest", "swamp"] else "hub")
 	if next_context == _context or _music_players.is_empty():
 		return
-	_context = next_context
-	var stream: AudioStream = _load_stream(next_context, true)
+	var stream: AudioStream = _load_stream(str(MUSIC_STREAMS[next_context]), true)
 	if stream == null:
 		return
+	_context = next_context
+	if _ambient != null:
+		_ambient.volume_db = _ambient_decibels()
 	if _fade != null and _fade.is_valid():
 		_fade.kill()
 	var previous: AudioStreamPlayer = _music_players[_active_music]
@@ -111,7 +118,10 @@ func set_context(context: String) -> void:
 	_fade.chain().tween_callback(previous.stop)
 
 func _music_decibels() -> float:
-	return linear_to_db(maxf(_music_volume * 0.78, 0.0001))
+	return linear_to_db(maxf(_music_volume * MUSIC_GAIN, 0.0001))
+
+func _ambient_decibels() -> float:
+	return linear_to_db(maxf(_sfx_volume * (0.18 if _context == "hub" else 0.09), 0.0001))
 
 func update_volumes() -> void:
 	var progress: Node = get_node_or_null("/root/Progress")
@@ -126,7 +136,7 @@ func update_volumes() -> void:
 		_music_players[_active_music].stream_paused = _music_volume <= 0.0
 		_music_players[1 - _active_music].stop()
 	if _ambient != null:
-		_ambient.volume_db = linear_to_db(maxf(_sfx_volume * 0.18, 0.0001))
+		_ambient.volume_db = _ambient_decibels()
 		_ambient.stream_paused = _sfx_volume <= 0.0
 	for player: AudioStreamPlayer in _effects_players:
 		if _sfx_volume <= 0.0:

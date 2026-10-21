@@ -244,7 +244,7 @@ func player_stats() -> Dictionary:
 	result["damage"] = float(result["damage"]) * (1.0 + int(modules["heart"]) * 0.05)
 	result["hp"] = float(result["hp"]) + int(modules["regeneration"]) * 5.0
 	result["max_hp"] = result["hp"]
-	result["regen"] = float(result["regen"]) + int(modules["regeneration"]) * 0.1
+	result["regen"] = float(result["regen"]) + int(modules["regeneration"]) * float(Data.REGEN["module_rate"])
 	result["detection_radius"] = float(result["detection_radius"]) + int(modules["navigation"]) * 25.0
 	result["pickup_radius"] = float(result["pickup_radius"]) + int(modules["storage"]) * 8.0
 	return result

@@ -1,6 +1,8 @@
 class_name BioWorld
 extends Node2D
 
+const ShipPlan = preload("res://scripts/ship_layout.gd")
+
 @export var biome: String = "ship"
 @export var bounds: Rect2 = Rect2(0, 0, 1536, 1152)
 @export var obstacles: Array[Vector3] = []
@@ -29,15 +31,26 @@ func restore_bindings() -> void:
 			if child is Node2D and child.has_meta("organ_id"):
 				organs.append(child as Node2D)
 	if biome == "ship":
+		_restore_tissue_cache()
 		refresh_organs()
 		if not Progress.changed.is_connected(refresh_organs):
 			Progress.changed.connect(refresh_organs)
 	queue_redraw()
 
+func _restore_tissue_cache() -> void:
+	# World2D and the live viewport texture are runtime bindings; reconnect them
+	# after loading the editable packed scene, before its first rendered frame.
+	var cache := get_node_or_null("RibsMembranesAndVessels/StaticTissueCache") as SubViewport
+	var image := get_node_or_null("RibsMembranesAndVessels/RenderedTissue") as Sprite2D
+	if cache != null and image != null:
+		cache.world_2d = World2D.new()
+		cache.render_target_update_mode = SubViewport.UPDATE_ONCE
+		image.texture = cache.get_texture()
+
 func setup(context: String) -> void:
 	biome = context
-	bounds = Rect2(0,0,1536,1152) if biome == "ship" else Rect2(0,0,2560,1920)
-	spawn_point = Vector2(768,660) if biome == "ship" else Vector2(400,960)
+	bounds = Rect2(Vector2.ZERO, ShipPlan.SIZE) if biome == "ship" else Rect2(0,0,2560,1920)
+	spawn_point = ShipPlan.SPAWN if biome == "ship" else Vector2(400,960)
 	var tileset := TileSet.new()
 	tileset.tile_size = Vector2i(32,32)
 	tileset.add_physics_layer()
@@ -76,20 +89,26 @@ func setup(context: String) -> void:
 	add_child(entities)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 48291 if biome == "ship" else (91741 if biome == "swamp" else 81729)
+	var ship_outline: PackedVector2Array = ShipPlan.footprint() if biome == "ship" else PackedVector2Array()
 	for y in int(bounds.size.y/32):
 		for x in int(bounds.size.x/32):
 			var coord := Vector2i(x,y)
 			if biome == "ship":
-				var d := Vector2((x*32+16-768)/660.0,(y*32+16-576)/454.0).length()
-				if d < 1.0:
+				if Geometry2D.is_point_in_polygon(Vector2(x * 32 + 16, y * 32 + 16), ship_outline):
 					floor_map.set_cell(coord,0,Vector2i(rng.randi_range(0,5),1))
-				if d >= 0.93 and d < 1.12:
-					walls.set_cell(coord,0,Vector2i(rng.randi_range(6,7),1))
 			else:
 				floor_map.set_cell(coord,0,Vector2i(rng.randi_range(0,7),0))
 				if x < 2 or y < 2 or x > 77 or y > 57:
 					walls.set_cell(coord,0,Vector2i(rng.randi_range(4,5),2))
 	if biome == "ship":
+		# Collision follows the actual floor's edge, including every room divider
+		# and vascular passage. Art uses the same silhouette without tiled rib seams.
+		for cell: Vector2i in floor_map.get_used_cells():
+			for offset: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN, Vector2i(-1,-1), Vector2i(1,-1), Vector2i(-1,1), Vector2i(1,1)]:
+				var adjacent: Vector2i = cell + offset
+				if floor_map.get_cell_source_id(adjacent) == -1:
+					walls.set_cell(adjacent, 0, Vector2i(6, 1))
+		walls.modulate.a = 0.0
 		_build_ship(rng)
 		refresh_organs()
 		if not Progress.changed.is_connected(refresh_organs):
@@ -99,32 +118,46 @@ func setup(context: String) -> void:
 	queue_redraw()
 
 func _build_ship(rng: RandomNumberGenerator) -> void:
-	_make_organ("navigation", "Навигационный узел", Vector2(414,470),0,Color("55d9d5"))
-	_make_organ("symbiont", "Регенеративное ложе", Vector2(1110,470),1,Color("bc83ec"))
-	_make_organ("heart", "Энергетическое сердце", Vector2(768,340),2,Color("ffa359"))
-	_make_organ("feeding", "Питающая камера", Vector2(480,790),3,Color("f69458"))
-	_make_organ("storage", "Биохранилище", Vector2(1056,790),4,Color("8ed68d"))
-	for i in 24:
-		var theta := TAU * i / 24.0
-		var p := Vector2(768,576)+Vector2(cos(theta)*590,sin(theta)*392)
-		var prop := BioVisual.sprite(decorations,"res://assets/art/props.png",Vector2i(64,64),Vector2i(6+i%2,0),rng.randf_range(0.8,1.5))
-		prop.position = p
-		prop.modulate = Color("9e617d")
-		prop.rotation = theta + PI/2
-	# Veins are decorative native Line2D nodes, with traversable open space.
-	for organ in organs:
-		var vein := Line2D.new()
-		vein.width = 5
-		vein.default_color = Color(0.38,0.16,0.24,0.45)
-		var destination := organ.position
-		var origin := Vector2(768,570)
-		for j in 18:
-			var t := float(j)/17
-			var p := origin.lerp(destination,t)
-			p += (destination-origin).normalized().orthogonal()*sin(t*PI*4)*12
-			vein.add_point(p)
-		vein.z_index = -1
-		add_child(vein)
+	var surface := Node2D.new()
+	surface.name = "RibsMembranesAndVessels"
+	surface.z_index = -1
+	add_child(surface)
+	# The tissue is static. Keep its editable procedural source, but render it
+	# once so thousands of fine vascular strokes do not run through every frame.
+	var tissue_view := SubViewport.new()
+	tissue_view.name = "StaticTissueCache"
+	tissue_view.size = Vector2i(ShipPlan.SIZE)
+	tissue_view.transparent_bg = true
+	tissue_view.disable_3d = true
+	tissue_view.world_2d = World2D.new()
+	tissue_view.render_target_update_mode = SubViewport.UPDATE_ONCE
+	surface.add_child(tissue_view)
+	var membrane: Node2D = load("res://scripts/ship_tissue.gd").new() as Node2D
+	membrane.name = "EditableTissueSource"
+	tissue_view.add_child(membrane)
+	var cached_tissue := Sprite2D.new()
+	cached_tissue.name = "RenderedTissue"
+	cached_tissue.centered = false
+	cached_tissue.texture = tissue_view.get_texture()
+	cached_tissue.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	surface.add_child(cached_tissue)
+	var atlas_indices: Dictionary = {"navigation": 0, "symbiont": 1, "heart": 2, "feeding": 3, "storage": 4}
+	for room: Dictionary in ShipPlan.ROOMS:
+		_make_organ(room.id, room.label, room.organ, int(atlas_indices[room.id]), room.color)
+		# Shaded roots are drawn by the shared tissue renderer. Low diffuse
+		# light anchors the organ into the membrane without symmetric prop pairs.
+		for side: float in [-1.0, 1.0]:
+			var light: Sprite2D = BioVisual.add_glow(surface, Color(room.color, 0.17), 410)
+			light.position = room.organ + Vector2(side * 94, -35)
+	# A branching vascular spine, visible through the heart hall. There is no
+	# decorative circular platform beneath the host.
+	var spine := Line2D.new()
+	spine.name = "HeartArtery"
+	spine.points = PackedVector2Array([Vector2(1024,354),Vector2(1000,400),Vector2(1024,470)])
+	spine.width = 13
+	spine.default_color = Color("8e3b50")
+	spine.z_index = -1
+	add_child(spine)
 
 func _make_organ(id: String, label: String, pos: Vector2, index: int, color: Color) -> void:
 	var organ := StaticBody2D.new()
@@ -139,20 +172,20 @@ func _make_organ(id: String, label: String, pos: Vector2, index: int, color: Col
 	var visual := Node2D.new()
 	visual.name = "LivingTissue"
 	organ.add_child(visual)
-	var sprite := BioVisual.sprite(visual,"res://assets/art/organs.png",Vector2i(128,128),Vector2i(index,0),1.28 if id == "heart" else 1.0)
+	var sprite := BioVisual.sprite(visual,"res://assets/art/organs.png",Vector2i(128,128),Vector2i(index,0),1.9 if id == "heart" else 1.45)
 	sprite.name = "OrganSprite"
-	var glow: Sprite2D = BioVisual.add_glow(visual,Color(color,0.55),250 if id == "heart" else 200)
+	var glow: Sprite2D = BioVisual.add_glow(visual,Color(color,0.55),350 if id == "heart" else 280)
 	glow.name = "Bioluminescence"
 	glow.set_meta("base_color", glow.modulate)
 	var shape := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
-	circle.radius = 42 if id == "heart" else 34
+	circle.radius = 61 if id == "heart" else 46
 	shape.shape = circle
 	organ.add_child(shape)
 	var title := Label.new()
 	title.text = label
-	title.position = Vector2(-130,80)
-	title.size = Vector2(260,30)
+	title.position = Vector2(-160,112 if id == "heart" else 98)
+	title.size = Vector2(320,30)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_override("font",load("res://assets/fonts/regular.tres"))
 	title.add_theme_font_size_override("font_size",16)
@@ -242,16 +275,21 @@ func _build_forest(rng: RandomNumberGenerator) -> void:
 
 func is_walkable(point: Vector2, clearance: float = 25) -> bool:
 	if biome == "ship":
-		if Vector2((point.x-768)/600.0,(point.y-576)/397.0).length()>0.97:
+		if floor_map == null or floor_map.get_cell_source_id(floor_map.local_to_map(point)) == -1:
 			return false
+		var reach: int = ceili(maxf(0.0, clearance) / 32.0) + 1
+		var cell: Vector2i = floor_map.local_to_map(point)
+		for y: int in range(cell.y - reach, cell.y + reach + 1):
+			for x: int in range(cell.x - reach, cell.x + reach + 1):
+				if walls.get_cell_source_id(Vector2i(x,y)) == -1:
+					continue
+				var wall_rect := Rect2(Vector2(x,y) * 32.0, Vector2.ONE * 32.0)
+				var nearest := point.clamp(wall_rect.position, wall_rect.end)
+				if point.distance_squared_to(nearest) < clearance * clearance:
+					return false
 	elif not bounds.grow(-90).has_point(point):
 		return false
 	for item in obstacles:
 		if point.distance_squared_to(Vector2(item.x,item.y)) < pow(item.z+clearance,2):
 			return false
 	return true
-
-func _draw() -> void:
-	if biome == "ship":
-		draw_arc(Vector2(768,576),210,0,TAU,96,Color(0.42,0.23,0.35,0.32),3)
-		draw_arc(Vector2(768,576),218,0,TAU,96,Color(0.42,0.23,0.35,0.15),1)

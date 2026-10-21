@@ -1,6 +1,7 @@
 extends SceneTree
 ## Run after asset import: godot --headless --path . --script res://tools/bake_scenes.gd
 ## Produces editable native scenes and reusable SpriteFrames resources.
+## For ship-only layout/art changes, append: -- --ship-only
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -12,6 +13,12 @@ func _assign_owner(node: Node, scene_root: Node) -> void:
 
 func _run() -> void:
 	var failures: int = 0
+	var ship_only: bool = "--ship-only" in OS.get_cmdline_user_args()
+	var contexts: Array[String] = ["ship", "forest", "swamp"]
+	var frame_keys: Array[String] = ["host_combat", "host_base", "enemy_crawler", "enemy_shell", "enemy_ranged", "enemy_guardian"]
+	if ship_only:
+		contexts = ["ship"]
+		frame_keys.clear()
 	var world_script: Script = load("res://scripts/world.gd") as Script
 	var actor_script: Script = load("res://scripts/actor.gd") as Script
 	if world_script == null or actor_script == null:
@@ -26,7 +33,7 @@ func _run() -> void:
 		progress.modules[key] = 0
 	for key: String in progress.upgrades:
 		progress.upgrades[key] = 0
-	for context: String in ["ship", "forest", "swamp"]:
+	for context: String in contexts:
 		var world: Node2D = world_script.new() as Node2D
 		world.name = {"ship": "ShipHub", "forest": "Forest", "swamp": "SporeMarsh"}[context]
 		root.add_child(world)
@@ -54,7 +61,7 @@ func _run() -> void:
 				push_error("BAKE_RESTORE_FAILED: " + path)
 				failures += 1
 			restored.free()
-	for key: String in ["host_combat", "host_base", "enemy_crawler", "enemy_shell", "enemy_ranged", "enemy_guardian"]:
+	for key: String in frame_keys:
 		var kind: String = "host" if key.begins_with("host") else key.trim_prefix("enemy_")
 		var texture_path: String = "res://assets/art/" + ("hero_base.png" if key == "host_base" else ("hero.png" if kind == "host" else "enemies.png"))
 		var frames: SpriteFrames = actor_script.create_sprite_frames(texture_path, kind)
@@ -67,5 +74,5 @@ func _run() -> void:
 			print("BAKED_FRAMES: ", frames_path, " animations=", frames.get_animation_names().size())
 	progress.modules = original_modules
 	progress.upgrades = original_upgrades
-	print("BAKE_FINISHED: 3 scenes, 6 SpriteFrames, %d failures" % failures)
+	print("BAKE_FINISHED: %d scenes, %d SpriteFrames, %d failures" % [contexts.size(), frame_keys.size(), failures])
 	quit(0 if failures == 0 else 1)

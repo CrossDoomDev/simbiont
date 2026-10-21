@@ -29,6 +29,7 @@ var manual_aim := Vector2.ZERO
 var manual_fire := false
 var detection_radius: float = 350.0
 var permanent_regen: float = 0.0
+var regen_delay_remaining: float = 0.0
 var attack_range: float = 350.0
 var windup_duration: float = 0.65
 var enemy_attack_interval: float = 2.3
@@ -36,6 +37,16 @@ var _contact_clock: float = 0.0
 var _separation_clock: float = 0.0
 var _separation: Vector2 = Vector2.ZERO
 var _directional_enemy_atlas: bool = false
+var guardian_state: String = "stalk"
+var guardian_attack: String = ""
+var guardian_state_time: float = 0.0
+var guardian_sequence: int = 0
+var guardian_dash_direction: Vector2 = Vector2.DOWN
+var guardian_dash_speed: float = 470.0
+var guardian_attack_enraged: bool = false
+var guardian_burst_clock: float = 0.0
+var guardian_bursts_remaining: int = 0
+var guardian_slam_flash: float = 0.0
 
 func _ready() -> void:
 	collision_layer = 2 if kind == "host" else 4
@@ -138,6 +149,8 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 func _host_tick(delta: float) -> void:
+	if dead:
+		return
 	velocity = move_input.limit_length() * speed
 	if game.mode != "mission":
 		if velocity.length_squared() > 1:
@@ -156,17 +169,33 @@ func _host_tick(delta: float) -> void:
 	if shoot and shot_clock <= 0:
 		shot_clock = attack_interval * float(game.mutation_factor("fire_rate"))
 		game.fire(self, aim, false)
+	# Only the portion of this tick after the damage lockout can heal.
+	var healing_delta: float = maxf(0.0, delta - regen_delay_remaining)
+	regen_delay_remaining = maxf(0.0, regen_delay_remaining - delta)
+	var healing_rate: float = permanent_regen
 	if game.has_mutation("regen"):
-		hp = minf(max_hp, hp + 1.5 * delta)
-	hp = minf(max_hp, hp + permanent_regen * delta)
+		healing_rate += float(GameData.REGEN["mutation_rate"])
+	hp = minf(max_hp, hp + healing_rate * healing_delta)
 
 func _enemy_tick(delta: float) -> void:
+	if dead:
+		velocity = Vector2.ZERO
+		return
 	if not is_instance_valid(game.player) or game.player.dead:
 		velocity = Vector2.ZERO
+		if kind == "guardian":
+			_cancel_guardian_attack()
 		return
 	var offset: Vector2 = game.player.global_position - global_position
 	var distance := offset.length()
 	aim = offset.normalized()
+	if kind == "guardian":
+		_guardian_tick(delta, offset)
+		if distance < radius + game.player.radius + 8 and _contact_clock <= 0:
+			var contact_damage: float = float(GameData.GUARDIAN_ATTACKS["dash"]["damage"]) if guardian_state == "dash" else damage
+			game.player.take_damage(contact_damage)
+			_contact_clock = 0.9
+		return
 	var desire := aim
 	if kind == "ranged":
 		if distance < attack_range * 0.72:
@@ -182,19 +211,6 @@ func _enemy_tick(delta: float) -> void:
 				shot_clock = attack_interval
 				telegraph = 0
 				cooldown = enemy_attack_interval
-		else:
-			telegraph = 0.0
-	elif kind == "guardian":
-		if distance < 230:
-			desire *= 0.25
-		if cooldown <= 0 and distance < attack_range + 150.0:
-			telegraph += delta
-			if telegraph >= windup_duration:
-				for i in 10:
-					game.fire(self, Vector2.RIGHT.rotated(TAU * i / 10.0 + age), true)
-				telegraph = 0
-				cooldown = enemy_attack_interval
-				shot_clock = attack_interval
 		else:
 			telegraph = 0.0
 	# Separation changes slowly; refresh it eight times per second instead of 60.
@@ -217,6 +233,116 @@ func _enemy_tick(delta: float) -> void:
 		game.player.take_damage(damage)
 		_contact_clock = 0.9
 
+func guardian_enraged() -> bool:
+	return hp <= max_hp * float(GameData.GUARDIAN_ATTACKS["enrage_threshold"])
+
+func _start_guardian_attack() -> void:
+	# Target and direction are locked at the start of the visible windup.
+	var sequence: Array[String] = ["dash", "fan", "slam"]
+	guardian_attack = sequence[guardian_sequence % sequence.size()]
+	guardian_sequence += 1
+	guardian_state = "windup"
+	target_point = game.player.global_position
+	guardian_dash_direction = (target_point - global_position).normalized()
+	if guardian_dash_direction.is_zero_approx():
+		guardian_dash_direction = Vector2.DOWN
+	guardian_attack_enraged = guardian_enraged()
+	guardian_dash_speed = float(GameData.GUARDIAN_ATTACKS["dash"]["speed"]) * (float(GameData.GUARDIAN_ATTACKS["enrage_speed"]) if guardian_attack_enraged else 1.0)
+	windup_duration = float(GameData.GUARDIAN_ATTACKS[guardian_attack]["windup"])
+	if guardian_attack_enraged:
+		windup_duration *= float(GameData.GUARDIAN_ATTACKS["enrage_windup"])
+	guardian_state_time = windup_duration
+	telegraph = 0.001
+	velocity = Vector2.ZERO
+
+func _finish_guardian_attack() -> void:
+	guardian_state = "recovery"
+	guardian_state_time = float(GameData.GUARDIAN_ATTACKS[guardian_attack]["recovery"])
+	cooldown = enemy_attack_interval * (float(GameData.GUARDIAN_ATTACKS["enrage_cooldown"]) if guardian_attack_enraged else 1.0)
+	telegraph = 0.0
+	velocity = Vector2.ZERO
+
+func _cancel_guardian_attack() -> void:
+	guardian_state = "stalk"
+	guardian_attack = ""
+	guardian_bursts_remaining = 0
+	guardian_state_time = 0.0
+	guardian_slam_flash = 0.0
+	telegraph = 0.0
+	velocity = Vector2.ZERO
+
+func _guardian_fan() -> void:
+	var config: Dictionary = GameData.GUARDIAN_ATTACKS["fan"]
+	var count: int = int(config["projectiles"])
+	var spread: float = float(config["spread"])
+	# Alternating fans move the gaps without tracking the player's new position.
+	var stagger: float = 0.07 if guardian_bursts_remaining % 2 == 0 else -0.07
+	for index: int in range(count):
+		var angle: float = lerpf(-spread, spread, float(index) / float(count - 1)) + stagger
+		game.fire(self, guardian_dash_direction.rotated(angle), true)
+	shot_clock = attack_interval
+
+func _guardian_slam() -> void:
+	var config: Dictionary = GameData.GUARDIAN_ATTACKS["slam"]
+	var blast_radius: float = float(config["radius"])
+	guardian_slam_flash = 0.32
+	game.burst(global_position, Color("ff8c69"), 22)
+	if game.player.global_position.distance_to(global_position) <= blast_radius + game.player.radius:
+		game.player.take_damage(float(config["damage"]))
+	var count: int = int(config["projectiles"])
+	for index: int in range(count):
+		game.fire(self, Vector2.RIGHT.rotated(TAU * index / count), true)
+	shot_clock = attack_interval
+
+func _guardian_tick(delta: float, offset: Vector2) -> void:
+	guardian_slam_flash = maxf(0.0, guardian_slam_flash - delta)
+	if guardian_state in ["windup", "dash", "volley"]:
+		aim = guardian_dash_direction
+	var speed_factor: float = float(GameData.GUARDIAN_ATTACKS["enrage_speed"]) if guardian_enraged() else 1.0
+	if guardian_state == "dash":
+		guardian_state_time -= delta
+		velocity = guardian_dash_direction * guardian_dash_speed
+		if guardian_state_time <= 0.0 or is_on_wall():
+			_finish_guardian_attack()
+		return
+	if guardian_state == "recovery":
+		velocity = Vector2.ZERO
+		guardian_state_time -= delta
+		if guardian_state_time <= 0.0:
+			guardian_state = "stalk"
+		return
+	if guardian_state == "volley":
+		velocity = Vector2.ZERO
+		guardian_burst_clock -= delta
+		if guardian_burst_clock <= 0.0:
+			_guardian_fan()
+			guardian_bursts_remaining -= 1
+			guardian_burst_clock = float(GameData.GUARDIAN_ATTACKS["fan"]["burst_interval"])
+			if guardian_bursts_remaining <= 0:
+				_finish_guardian_attack()
+		return
+	if guardian_state == "windup":
+		velocity = Vector2.ZERO
+		telegraph += delta
+		guardian_state_time -= delta
+		if guardian_state_time <= 0.0:
+			telegraph = 0.0
+			if guardian_attack == "dash":
+				guardian_state = "dash"
+				guardian_state_time = float(GameData.GUARDIAN_ATTACKS["dash"]["duration"])
+				velocity = guardian_dash_direction * guardian_dash_speed
+			elif guardian_attack == "fan":
+				guardian_state = "volley"
+				guardian_bursts_remaining = int(GameData.GUARDIAN_ATTACKS["fan"]["bursts"]) + (1 if guardian_attack_enraged else 0)
+				guardian_burst_clock = 0.0
+			else:
+				_guardian_slam()
+				_finish_guardian_attack()
+		return
+	velocity = offset.normalized() * speed * speed_factor
+	if cooldown <= 0.0 and offset.length() < attack_range + 150.0:
+		_start_guardian_attack()
+
 func take_damage(amount: float) -> void:
 	if dead or invulnerable > 0 or not is_finite(amount) or amount <= 0.0:
 		return
@@ -232,12 +358,15 @@ func take_damage(amount: float) -> void:
 	flash.tween_property(anim, "modulate", Color.WHITE, 0.16)
 	if kind == "host":
 		invulnerable = 0.55
+		regen_delay_remaining = float(GameData.REGEN["damage_delay"])
 		Audio.play_sfx("hurt")
 		game.shake = 5.0
 	else:
 		Audio.play_sfx("hit")
 	if hp <= 0:
 		dead = true
+		if kind == "guardian":
+			_cancel_guardian_attack()
 		velocity = Vector2.ZERO
 		collision_layer = 0
 		died.emit(self)
@@ -259,8 +388,45 @@ func _draw() -> void:
 		if kind == "ranged":
 			var warning_direction: Vector2 = (target_point - global_position).normalized()
 			draw_line(warning_direction * 24.0, warning_direction * 115.0, Color(1.0, 0.35, 0.35, 0.45), 2.0)
+	if kind == "guardian":
+		_draw_guardian_warning()
 	if kind == "host" and game.mode == "mission":
 		draw_line(aim * 24, aim * 34, Color(0.45, 1.0, 0.78, 0.55), 2)
+
+func _draw_guardian_warning() -> void:
+	if guardian_enraged():
+		draw_arc(Vector2.ZERO, radius + 9.0, age * 1.5, age * 1.5 + TAU * 0.8, 40, Color(1.0, 0.22, 0.12, 0.7), 3.0)
+	if guardian_slam_flash > 0.0:
+		var radius_slam: float = float(GameData.GUARDIAN_ATTACKS["slam"]["radius"])
+		draw_arc(Vector2.ZERO, radius_slam * (1.0 - guardian_slam_flash / 0.5), 0.0, TAU, 64, Color(1.0, 0.65, 0.25, guardian_slam_flash * 2.5), 6.0)
+	if guardian_state != "windup":
+		return
+	var strength: float = clampf(telegraph / windup_duration, 0.0, 1.0)
+	var warning: Color = Color(1.0, 0.3, 0.2, 0.35 + strength * 0.55)
+	if guardian_attack == "dash":
+		var dash_length: float = guardian_dash_speed * float(GameData.GUARDIAN_ATTACKS["dash"]["duration"])
+		var endpoint: Vector2 = guardian_dash_direction * dash_length
+		# The lane represents danger to the host's center, including body clearance.
+		var danger_radius: float = radius + game.player.radius + 8.0
+		var side: Vector2 = guardian_dash_direction.orthogonal() * danger_radius
+		draw_colored_polygon(PackedVector2Array([side, endpoint + side, endpoint - side, -side]), Color(warning, 0.10 + strength * 0.08))
+		draw_circle(Vector2.ZERO, danger_radius, Color(warning, 0.10 + strength * 0.08))
+		draw_circle(endpoint, danger_radius, Color(warning, 0.10 + strength * 0.08))
+		draw_arc(endpoint, danger_radius, guardian_dash_direction.angle() - PI * 0.5, guardian_dash_direction.angle() + PI * 0.5, 32, warning, 2.0)
+		draw_line(side, endpoint + side, warning, 2.0)
+		draw_line(-side, endpoint - side, warning, 2.0)
+		draw_line(endpoint - guardian_dash_direction * 24.0 + side * 0.5, endpoint, warning, 3.0)
+		draw_line(endpoint - guardian_dash_direction * 24.0 - side * 0.5, endpoint, warning, 3.0)
+	elif guardian_attack == "slam":
+		var slam_radius: float = float(GameData.GUARDIAN_ATTACKS["slam"]["radius"])
+		draw_circle(Vector2.ZERO, slam_radius, Color(warning, 0.08 + strength * 0.12))
+		draw_arc(Vector2.ZERO, slam_radius, 0.0, TAU, 64, warning, 3.0)
+		draw_arc(Vector2.ZERO, slam_radius * strength, 0.0, TAU, 64, Color(warning, 0.5), 2.0)
+	else:
+		var spread: float = float(GameData.GUARDIAN_ATTACKS["fan"]["spread"])
+		for angle: float in [-spread, 0.0, spread]:
+			var direction: Vector2 = guardian_dash_direction.rotated(angle)
+			draw_line(direction * radius, direction * 230.0, warning, 2.0)
 
 func draw_ellipse_shadow() -> void:
 	draw_set_transform(Vector2(0, 15), 0, Vector2(1.0, 0.4))

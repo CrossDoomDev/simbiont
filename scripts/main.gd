@@ -28,7 +28,7 @@ var navigation_cache: AStarGrid2D
 
 func _ready() -> void:
 	rng.randomize()
-	if "--capture" in OS.get_cmdline_user_args() or "--runtime-test" in OS.get_cmdline_user_args():
+	if "--capture" in OS.get_cmdline_user_args() or "--runtime-test" in OS.get_cmdline_user_args() or "--audio-test" in OS.get_cmdline_user_args():
 		Progress.save_path = "user://symbiont_verification.json"
 		Progress._defaults()
 	_setup_world("ship")
@@ -76,8 +76,8 @@ func _setup_world(context: String) -> void:
 	camera.limit_bottom = int(world.bounds.end.y)
 	player.add_child(camera)
 	if context == "ship":
-		camera.zoom = Vector2.ONE * 0.9
-		camera.position.y = -90
+		camera.zoom = Vector2.ONE * 1.15
+		camera.position.y = -140
 	camera.make_current()
 	camera.reset_smoothing()
 	Audio.set_context("hub" if context == "ship" else "mission")
@@ -258,7 +258,7 @@ func update_ship() -> void:
 		visual.modulate = Color.WHITE * (0.95+level*0.07)
 		visual.modulate.a = 1
 		var sprite: Sprite2D = visual.get_node("OrganSprite")
-		sprite.scale = Vector2.ONE*(1.28+level*0.075 if id == "heart" else 1+level*0.04)
+		sprite.scale = Vector2.ONE*(1.9+level*0.075 if id == "heart" else 1.45+level*0.04)
 	if is_instance_valid(player):
 		player.apply_stats()
 
@@ -274,7 +274,7 @@ func fire(source: BioActor, aim: Vector2, hostile: bool) -> void:
 		bullet.direction = direction.normalized()
 		bullet.hostile = hostile
 		bullet.damage = source.damage
-		bullet.speed = 135 if hostile else 550
+		bullet.speed = float(GameData.ENEMIES[source.kind].get("projectile_speed", 135.0)) if hostile else 550.0
 		bullet.life = 5.5 if hostile else 1.25
 		bullet.position = source.global_position + direction*(source.radius+12)
 		world.entities.add_child(bullet)
@@ -324,6 +324,8 @@ func spawn_enemy(kind: String, point: Vector2) -> BioActor:
 	if mission_id==1:
 		enemy.hp *= 1.3
 		enemy.max_hp *= 1.3
+	if kind == "guardian" and mode == "mission":
+		Audio.set_context("boss")
 	return enemy
 
 func _enemy_died(enemy: BioActor) -> void:
@@ -333,6 +335,8 @@ func _enemy_died(enemy: BioActor) -> void:
 	_drop_loot(enemy.position,loot)
 	if enemy.kind == "guardian":
 		boss_defeated = true
+		if mode == "mission":
+			Audio.set_context("mission")
 		Audio.play_sfx("objective")
 		ui.toast("Страж уничтожен. Органическое ядро выпало на землю.")
 		if objective_complete():

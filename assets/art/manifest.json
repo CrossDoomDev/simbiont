@@ -35,14 +35,14 @@
         "walk2",
         "attack"
       ],
-      "notes": "Front-facing attack uses idle stance; runtime supplies actual directional shot effect. Left-facing attack was mirrored from right-facing source."
+      "notes": "South walk2 uses a dedicated corrected source pose with the organic cannon on anatomical right (screen-left), preserving the original north-facing gait. No host gait frame is mirrored. Front-facing attack uses idle stance; runtime supplies directional shot effects. Left-facing attack was mirrored from right-facing source."
     },
     "hero_base.png": {
       "size": [
         256,
         256
       ],
-      "notes": "Same bonded host form; the symbiote remains attached on ship."
+      "notes": "Same bonded host form; the symbiote remains attached on ship. Shares the corrected anatomical-right south gait with hero.png."
     },
     "enemies.png": {
       "size": [
@@ -150,6 +150,12 @@
     }
   },
   "prompts": [
+    {
+      "asset": "hero-down-walk-generated.png",
+      "source_reference": "assets/source/hero-generated.png",
+      "generator": "OpenAI built-in image_gen, focused sprite edit, transparent background",
+      "prompt": "Create one matching isolated complementary SOUTH-facing walking frame using the original atlas top-row first/second characters as design/palette/proportion references. Preserve olive-black survivor armor, amber visor, cyan chest light and dark-purple symbiote. Anatomical RIGHT is VIEWER LEFT: keep the thick purple cannon arm there and the slender human arm on viewer-right. Never mirror the torso. Viewer-right human leg steps forward/down, viewer-left leg back/up. Preserve the detailed shaded retro pixel-art style, full centered figure, transparent margins, no floor, labels or redesign. The original third top-row cell has the wrong arm and must not be copied. tools/assemble_art.py replaces only that cell; all other source frames remain unchanged."
+    },
     {"asset": "nest", "prompt": "Use case: stylized-concept. Asset type: single production 2D pixel-art enemy NEST sprite with true transparent background, intended to become a 128x128 game sprite. An evil corrupted organic alien nest viewed STRICTLY STRAIGHT DOWN from overhead, orthographic flat top-down video-game projection, not an isometric view, not a perspective illustration. Circular irregular radial mound of blue-black and burgundy chitin plates, twisted red-black glossy fleshy roots curling outward on every side, a cluster of three smaller dark crimson egg sacs and a large intensely glowing bright RED heart core in the center with tiny hot orange fissures. Jagged black bone spines and curved rib-like claws surround the organic core. Dark detailed mature retro pixel art, sharp discrete pixel clusters, rich handcrafted shading, crimson glow limited inside the sprite silhouette, thin amber edge highlights, strongly readable sinister silhouette matching a dark biomechanical alien forest survival game. The nest is low lying on the ground seen from straight overhead, radial footprint, not an upright heart and not a building. Whole nest fits a square with generous 10% transparent margin on all sides. No scene, no floor, no pedestal, no ground shadow, no UI, no labels, no text, no frame or grid. Beautifully detailed clean transparent cutout game asset."},
     {
       "asset": "hero",
@@ -173,11 +179,13 @@
     "assets/source/hero-generated.png",
     "assets/source/enemies-generated.png",
     "assets/source/organs-generated.png",
-    "assets/source/props-generated.png"
+    "assets/source/props-generated.png",
+    "assets/source/hero-down-walk-generated.png"
   ],
   "build": [
     "C:/Python/python.exe tools/build_tile_art.py",
-    "C:/Python/python.exe tools/assemble_art.py"
+    "C:/Python/python.exe tools/assemble_art.py",
+    "python tools/check_host_animation.py"
   ],
   "limitations": [
     "Screenshot fidelity must be checked from the live Godot level. contact_sheet.png is only an asset inspection sheet."
