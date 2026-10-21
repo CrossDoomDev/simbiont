@@ -158,7 +158,15 @@ func _physics_process(delta: float) -> void:
 	armed_walk = kind == "host" and state == "attack" and velocity.length_squared() > 4.0
 	if armed_walk_material != null:
 		armed_walk_material.set_shader_parameter("armed_walk",armed_walk)
-	anim.play("%s_%d" % ["walk" if armed_walk else state, facing])
+	var next_animation := "%s_%d" % ["walk" if armed_walk else state, facing]
+	# A new facing is a new animation in Godot; preserve the ongoing gait rather
+	# than restarting its first step whenever mouse/autofire aim changes.
+	var preserve_gait: bool = kind == "host" and anim.animation.begins_with("walk_") and next_animation.begins_with("walk_") and anim.animation != next_animation
+	var gait_frame: int = anim.frame
+	var gait_progress: float = anim.frame_progress
+	anim.play(next_animation)
+	if preserve_gait:
+		anim.set_frame_and_progress(gait_frame,gait_progress)
 	var moving: bool = velocity.length_squared() > 4.0
 	var bob: float = sin(age * (6.0 if moving else 2.4)) * (1.2 if kind == "host" else 1.8)
 	var recoil: float = clampf((shot_clock - attack_interval + 0.09) / 0.09,0.0,1.0) * 1.6 if kind == "host" and attack_pose_remaining > 0.0 else 0.0

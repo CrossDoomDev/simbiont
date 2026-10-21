@@ -20,7 +20,7 @@ func settle() -> void:
 func capture(name: String) -> void:
 	await settle()
 	await RenderingServer.frame_post_draw
-	check(root.get_texture().get_image().save_png("res://artifacts/screenshots/27_armed_walk_"+name+".png") == OK,"save "+name)
+	check(root.get_texture().get_image().save_png("res://artifacts/screenshots/28_armed_walk_"+name+".png") == OK,"save "+name)
 
 func verify_pixels(direction: int) -> void:
 	var viewport := SubViewport.new()
@@ -74,6 +74,23 @@ func _run() -> void:
 	game.camera.position_smoothing_enabled = false
 	game.camera.zoom = Vector2.ONE * 3.5
 	game.ui.toast_time = 0
+	# Continuous input regression: aiming changes every tick while legs must cycle.
+	game.player.position = Vector2(1280,960)
+	game.player.move_input = Vector2.DOWN
+	game.player.manual_fire = true
+	game.player.shot_clock = 0
+	game.player.set_physics_process(true)
+	var phases := [[],[],[],[]]
+	for tick: int in 48:
+		var facing_index: int = tick % 4
+		game.player.manual_aim = [Vector2.DOWN,Vector2.LEFT,Vector2.RIGHT,Vector2.UP][facing_index]
+		await physics_frame
+		await process_frame
+		if game.player.anim.frame not in phases[facing_index]:
+			phases[facing_index].append(game.player.anim.frame)
+	for direction: int in 4:
+		check(phases[direction].size() == 2,"both steps survive continuous aim switching, direction %d" % direction)
+	game.player.set_physics_process(false)
 	for direction: int in 4:
 		var facing: Vector2 = [Vector2.DOWN,Vector2.LEFT,Vector2.RIGHT,Vector2.UP][direction]
 		game.player.position = Vector2(1280,960)

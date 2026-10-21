@@ -86,6 +86,33 @@ func _host_pose_checks() -> void:
 	host.position = Vector2.ZERO
 	host.shot_clock = 0.0
 
+func _gait_continuity_checks() -> void:
+	var host: Node2D = arena.player
+	host.move_input = Vector2.DOWN
+	host.manual_fire = true
+	host.shot_clock = 0.0
+	var second_step_seen := false
+	var phase_preserved := true
+	for tick: int in 40:
+		host.manual_aim = [Vector2.RIGHT,Vector2.UP,Vector2.LEFT,Vector2.DOWN][tick % 4]
+		var previous_frame: int = host.anim.frame
+		var previous_progress: float = host.anim.frame_progress
+		var was_walking: bool = host.anim.animation.begins_with("walk_")
+		host._physics_process(1.0 / 60.0)
+		if was_walking:
+			phase_preserved = phase_preserved and host.anim.frame == previous_frame and is_equal_approx(host.anim.frame_progress,previous_progress)
+		await physics_frame
+		await process_frame
+		second_step_seen = second_step_seen or host.anim.frame == 1
+	check(second_step_seen, "steps keep advancing when aiming direction switches every physics tick")
+	check(phase_preserved, "all four aim changes preserve both gait frame and fractional progress")
+	host.manual_fire = false
+	host.manual_aim = Vector2.ZERO
+	host.move_input = Vector2.ZERO
+	host.position = Vector2.ZERO
+	host.attack_pose_remaining = 0.0
+	host.shot_clock = 0.0
+
 func _regen_checks() -> void:
 	var host: Node2D = arena.player
 	progress.upgrades["regeneration"] = 3
@@ -299,6 +326,7 @@ func _run() -> void:
 	arena.player = _actor("host", Vector2(500, 400))
 	await _frames()
 	_host_pose_checks()
+	await _gait_continuity_checks()
 	_regen_checks()
 	await _guardian_checks()
 	arena.queue_free()
