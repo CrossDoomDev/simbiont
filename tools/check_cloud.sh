@@ -12,7 +12,7 @@ if grep -Eq '^ERROR:|SCRIPT ERROR:|Parse Error:|Compile Error:' artifacts/ci/imp
     exit 1
 fi
 
-for test_name in check_scripts test_fonts test_progress test_gameplay test_touch test_ship test_combat test_caves test_ui_layout test_audio; do
+for test_name in check_scripts test_fonts test_progress test_gameplay test_touch test_ship test_combat test_caves test_ui_layout test_navigation test_audio; do
     extra_args=()
     if [[ "$test_name" == test_audio ]]; then
         extra_args=(-- --audio-test)
@@ -31,6 +31,7 @@ for test_name in check_scripts test_fonts test_progress test_gameplay test_touch
         test_combat) marker='COMBAT_TESTS'; unit='checks' ;;
         test_caves) marker='CAVE_TESTS'; unit='checks' ;;
         test_ui_layout) marker='UI_LAYOUT_TESTS'; unit='checks' ;;
+        test_navigation) marker='NAVIGATION_TESTS'; unit='checks' ;;
         test_audio) marker='AUDIO_TESTS'; unit='checks' ;;
     esac
     grep -Eq "^${marker}: [1-9][0-9]* ${unit}, 0 failures$" "artifacts/ci/${test_name}.log"

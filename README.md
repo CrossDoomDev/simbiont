@@ -63,6 +63,8 @@ python -m http.server 8080 --directory build/web --bind 127.0.0.1
 - Живой корабль с сердечным залом, четырьмя отдельными камерами и извилистыми сосудистыми коридорами. Пять органов отвечают за навигацию, развитие симбионта, сердце, восстановление и биохранилище. Проходы и стенки используют нативные коллизии; карта показывает настоящую планировку. Интерфейсы появляются как HUD при контакте; носитель остаётся вместе с симбионтом.
 - Лесная вылазка «Шёпот под кронами»: три гнездовых узла, волны ползунов, панцирников и излучателей, мини-босс страж.
 - Открываемая «Багровая низина» после второй стадии сердца: из каждого из трёх узлов выходит собственный страж. Для возвращения нужно разрушить все узлы и победить всех троих; HUD показывает общий прогресс.
+- Навигация через точки на планете: выбор точки показывает справа одну карточку описания и кнопку «Переместиться». Закрытые точки объясняют требование к сердцу корабля.
+- В бою мышь отображается органическим прицелом; линия направления возле персонажа удалена. Меню и корабль используют обычный курсор.
 - Биоимпульсное оружие, ручное наведение, переключаемый автоогонь, попадания, коллизии, здоровье, регенерация, добыча и рост опасности.
 - Страж чередует предупреждённый рывок, веерные залпы и удар по площади. При половине здоровья ускоряется; направление и дальность уже объявленной атаки остаются фиксированными, после атаки есть окно восстановления.
 - Регенерация начинается через пять секунд без урона. Постоянное улучшение даёт 0,05 HP/с за уровень, модуль — 0,025 HP/с за стадию; максимальная сумма постоянных улучшений — 0,25 HP/с.
@@ -132,13 +134,14 @@ $godot = powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\launch.
 & $godot --headless --path . --script res://tests/test_caves.gd
 & $godot --headless --path . --script res://tests/test_fonts.gd
 & $godot --headless --path . --script res://tests/test_ui_layout.gd
+& $godot --headless --path . --script res://tests/test_navigation.gd
 & $godot --headless --path . --script res://tests/test_audio.gd -- --audio-test
 & $godot --headless --path . -- --runtime-test
 # Для скриншотов требуется настоящий графический viewport:
 & $godot --path . -- --capture
 ```
 
-Проверки и `--capture` используют отдельные тестовые профили. Обычный `symbiont_save.json` не изменяется. Проверяйте код возврата и сообщения `SCRIPT_CHECKS`, `FONT_TESTS`, `PROGRESS_TESTS`, `GAMEPLAY_TESTS`, `TOUCH_TESTS`, `SHIP_TESTS`, `COMBAT_TESTS`, `CAVE_TESTS`, `UI_LAYOUT_TESTS`, `AUDIO_TESTS`, `RUNTIME_TESTS`, `SCREENSHOTS_OK`, а также ошибки в журнале. Звуковой тест захватывает фактический PCM через `AudioServer`; флаг `--record-audio` после `--audio-test` сохраняет записи в `artifacts/audio/`.
+Проверки и `--capture` используют отдельные тестовые профили. Обычный `symbiont_save.json` не изменяется. Проверяйте код возврата и сообщения `SCRIPT_CHECKS`, `FONT_TESTS`, `PROGRESS_TESTS`, `GAMEPLAY_TESTS`, `TOUCH_TESTS`, `SHIP_TESTS`, `COMBAT_TESTS`, `CAVE_TESTS`, `UI_LAYOUT_TESTS`, `NAVIGATION_TESTS`, `AUDIO_TESTS`, `RUNTIME_TESTS`, `SCREENSHOTS_OK`, а также ошибки в журнале. Звуковой тест захватывает фактический PCM через `AudioServer`; флаг `--record-audio` после `--audio-test` сохраняет записи в `artifacts/audio/`.
 
 Исходник пещеры и запрос генерации сохранены в `assets/source/cave-entrance-generated.png` и `assets/art/cave_manifest.json`. Сборка изображения: `python tools/build_cave_art.py`; пересборка только двух карт с редактируемыми входами и маркерами выхода: `godot --headless --path . --script res://tools/bake_scenes.gd -- --missions-only`. Снимки четырёх сторон: `godot --path . --audio-driver Dummy --script res://tools/capture_caves.gd` при наличии графического контекста.
 

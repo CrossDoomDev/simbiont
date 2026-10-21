@@ -395,8 +395,6 @@ func _draw() -> void:
 			draw_line(warning_direction * 24.0, warning_direction * 115.0, Color(1.0, 0.35, 0.35, 0.45), 2.0)
 	if kind == "guardian":
 		_draw_guardian_warning()
-	if kind == "host" and game.mode == "mission":
-		draw_line(aim * 24, aim * 34, Color(0.45, 1.0, 0.78, 0.55), 2)
 
 func _draw_guardian_warning() -> void:
 	if guardian_enraged():

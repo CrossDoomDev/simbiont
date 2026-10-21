@@ -85,7 +85,8 @@ func _scratch_cleanup() -> void:
 
 func _launch(index: int = 0) -> void:
 	game.ui.open_map()
-	check(_click("Начать миссию", index, true), "map launch callback fires")
+	game.ui.navigation_map.point_buttons[index].pressed.emit()
+	check(_click("Переместиться"), "selected map point launch callback fires")
 	check(await _wait_for(func() -> bool: return game.mode == "mission" and not game.transitioning), "mission transition completes")
 	game.set_physics_process(false)
 	progress.settings["autofire"] = false
@@ -228,8 +229,8 @@ func _run() -> void:
 		_click("×")
 		check(not game.modal and game.ui.page == "", id + " close callback restores control")
 	game.ui.open_map()
-	var locked: Array[Button] = _buttons(game.ui.modal_root, "Закрыто", true)
-	check(locked.size() == 1 and locked[0].disabled and not progress.mission_unlocked(1), "second biome displays its heart II lock")
+	game.ui.navigation_map.point_buttons[1].pressed.emit()
+	check(game.ui.map_launch.disabled and game.ui.map_lock.visible and not progress.mission_unlocked(1), "selected second biome displays its heart II lock")
 	game.ui.close()
 	progress.bank = [100, 20, 20, 2]
 	game.ui.open_upgrades(false)

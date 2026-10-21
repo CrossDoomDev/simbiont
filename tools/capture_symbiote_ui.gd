@@ -11,7 +11,9 @@ func _settle() -> void:
 		await process_frame
 
 func _capture(name: String) -> void:
-	if "--padding" in OS.get_cmdline_user_args():
+	if "--navigation" in OS.get_cmdline_user_args():
+		name = name.replace("22_", "25_")
+	elif "--padding" in OS.get_cmdline_user_args():
 		name = name.replace("22_", "24_")
 	elif "--fonts" in OS.get_cmdline_user_args():
 		name = name.replace("22_", "23_")
@@ -37,6 +39,21 @@ func _run() -> void:
 	await _capture("22_symbiote_title")
 	game.ui.open_map()
 	await _capture("22_neural_map")
+	if "--navigation" in OS.get_cmdline_user_args():
+		game.ui.navigation_map.point_buttons[1].pressed.emit()
+		await _capture("25_map_swamp")
+		progress.modules["heart"] = 0
+		game.ui._select_map_mission(1)
+		await _capture("25_map_locked")
+		progress.modules["heart"] = 2
+		game.ui._select_map_mission(1)
+		root.size = Vector2i(640,360)
+		await _settle()
+		game.ui.overlay_scroll.scroll_vertical = 0
+		await _capture("25_map_compact")
+		game.ui.overlay_scroll.scroll_vertical = 1000000
+		await _capture("25_map_compact_details")
+		root.size = Vector2i(1280,720)
 	game.ui.open_upgrades(false)
 	await _capture("22_symbiote_upgrades")
 	root.size = Vector2i(640,960)

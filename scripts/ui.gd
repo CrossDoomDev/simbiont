@@ -6,6 +6,15 @@ const BORDER := Color("68416f")
 const TEXT := Color("e5eee6")
 const MUTED := Color("b4a1b7")
 const ACCENT := Color("dca7ec")
+const RETICLE: Texture2D = preload("res://assets/art/ui/reticle.svg")
+var battle_cursor_active := false
+var selected_mission := 0
+var navigation_map: Control
+var map_biome: Label
+var map_name: Label
+var map_description: Label
+var map_lock: Label
+var map_launch: Button
 var game: Node
 var root: Control
 var hud: Control
@@ -294,6 +303,7 @@ func _process(delta: float) -> void:
 	if interact_button.visible:
 		interact_button.text = "E   " + str(game.near_organ.get_meta("label"))
 	touch.visible = (automatic_touch or bool(Progress.settings.get("touch",false))) and not game.modal
+	_update_battle_cursor()
 	if layout_dirty or last_layout_size != root.size or last_touch_layout != touch.visible:
 		layout_dirty = false
 		_layout()
@@ -397,30 +407,52 @@ func open_tutorial() -> void:
 
 func open_map() -> void:
 	page = "map"
-	var v := overlay("Нейронная карта", "Сигналы планеты, воспринятые через симбионта. Выберите точку вылазки.")
+	var v := overlay("Нейронная карта", "Выберите точку на поверхности планеты.")
 	var row := HFlowContainer.new()
 	row.add_theme_constant_override("h_separation",20)
-	row.add_theme_constant_override("v_separation",16)
+	row.add_theme_constant_override("v_separation",20)
 	v.add_child(row)
-	var map: Control = load("res://scripts/map_visual.gd").new()
-	map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(map)
-	var missions := _box(row,14)
-	missions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	missions.custom_minimum_size.x = 340
-	for i in 2:
-		var data: Dictionary = GameData.MISSIONS[i]
-		var card := PanelContainer.new()
-		card.add_theme_stylebox_override("panel",style(Color("152831")))
-		missions.add_child(card)
-		var box := _box(card,12)
-		box.add_child(label("0%d  /  %s" % [i+1,data["biome"]],12,ACCENT if i == 0 else Color("d49bbf")))
-		box.add_child(paragraph(data["name"],24,TEXT))
-		box.add_child(paragraph(data["description"],15))
-		var available: bool = Progress.mission_unlocked(i)
-		var launch := button("Начать миссию  →" if available else "Закрыто · сердце корабля II",func(): game.start_mission(i),available)
-		launch.disabled = not available
-		box.add_child(launch)
+	navigation_map = load("res://scripts/map_visual.gd").new()
+	navigation_map.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(navigation_map)
+	navigation_map.mission_selected.connect(_select_map_mission)
+	var card := PanelContainer.new()
+	card.custom_minimum_size.x = 340
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(card)
+	var box := _box(card,16)
+	map_biome = label("",12,ACCENT)
+	map_name = paragraph("",24,TEXT)
+	map_description = paragraph("",16)
+	map_lock = paragraph("",15,Color("dca7b6"))
+	map_launch = button("Переместиться",func(): game.start_mission(selected_mission),true)
+	for control: Control in [map_biome,map_name,map_description,map_lock,map_launch]:
+		box.add_child(control)
+	_select_map_mission(selected_mission)
+
+func _select_map_mission(index: int) -> void:
+	selected_mission = clampi(index,0,GameData.MISSIONS.size()-1)
+	navigation_map.select_mission(selected_mission)
+	var data: Dictionary = GameData.MISSIONS[selected_mission]
+	map_biome.text = data["biome"]
+	map_name.text = data["name"]
+	map_description.text = data["description"]
+	var available: bool = Progress.mission_unlocked(selected_mission)
+	map_lock.text = "Для доступа восстановите сердце корабля до II стадии."
+	map_lock.visible = not available
+	map_launch.disabled = not available
+	layout_dirty = true
+
+func _update_battle_cursor() -> void:
+	var active: bool = game.mode == "mission" and not game.modal and not touch.visible
+	if active != battle_cursor_active:
+		battle_cursor_active = active
+		Input.set_custom_mouse_cursor(RETICLE if active else null,Input.CURSOR_ARROW,Vector2(24,24) if active else Vector2.ZERO)
+
+func _exit_tree() -> void:
+	if battle_cursor_active:
+		Input.set_custom_mouse_cursor(null)
+
 
 func open_pause() -> void:
 	page = "pause"
