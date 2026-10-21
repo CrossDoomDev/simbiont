@@ -10,7 +10,7 @@ static func panel(alpha: float = 1.0) -> StyleBoxTexture:
 	box.texture = PANEL
 	for side: int in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
 		box.set_texture_margin(side, 22.0)
-		box.set_content_margin(side, 24.0)
+		box.set_content_margin(side, 40.0)
 	box.modulate_color = Color(1, 1, 1, alpha)
 	return box
 
@@ -19,10 +19,10 @@ static func button(tint: Color = Color.WHITE) -> StyleBoxTexture:
 	box.texture = BUTTON
 	for side: int in [SIDE_LEFT, SIDE_RIGHT]:
 		box.set_texture_margin(side, 54.0)
-		box.set_content_margin(side, 26.0)
+		box.set_content_margin(side, 44.0)
 	for side: int in [SIDE_TOP, SIDE_BOTTOM]:
 		box.set_texture_margin(side, 18.0)
-		box.set_content_margin(side, 11.0)
+		box.set_content_margin(side, 18.0)
 	box.modulate_color = tint
 	return box
 

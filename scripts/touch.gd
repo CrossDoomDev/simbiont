@@ -17,12 +17,12 @@ func _ready() -> void:
 
 func layout_for_view(view: Vector2) -> void:
 	var compact: bool = view.y < 600
-	var new_left := Vector2(110, view.y - (90 if compact else 120))
+	var new_left := Vector2(110, view.y - (72 if compact else 120))
 	var new_right := Vector2(view.x - 110, new_left.y)
 	if new_left != left_center or new_right != right_center:
 		cancel_touches()
 	radius = 54.0 if compact else 65.0
-	left_center = Vector2(110, view.y - (90 if compact else 120))
+	left_center = Vector2(110, view.y - (72 if compact else 120))
 	right_center = Vector2(view.x - 110, left_center.y)
 	queue_redraw()
 

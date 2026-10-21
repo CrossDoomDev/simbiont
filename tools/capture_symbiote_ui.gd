@@ -11,7 +11,9 @@ func _settle() -> void:
 		await process_frame
 
 func _capture(name: String) -> void:
-	if "--fonts" in OS.get_cmdline_user_args():
+	if "--padding" in OS.get_cmdline_user_args():
+		name = name.replace("22_", "24_")
+	elif "--fonts" in OS.get_cmdline_user_args():
 		name = name.replace("22_", "23_")
 	await _settle()
 	await RenderingServer.frame_post_draw

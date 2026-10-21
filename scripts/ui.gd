@@ -35,6 +35,7 @@ var overlay_width := 980.0
 var overlay_left := false
 var upgrade_grid: GridContainer
 var layout_dirty := true
+var toolbar_button: Button
 var last_layout_size := Vector2.ZERO
 var last_touch_layout := false
 var regular: Font = preload("res://assets/fonts/regular.tres")
@@ -93,15 +94,15 @@ func button(value: String, callback: Callable, primary: bool = false) -> Button:
 	var b := Button.new()
 	b.text = value
 	b.clip_text = true
-	b.custom_minimum_size = Vector2(minf(320, bold.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,19).x + 52),54)
+	b.custom_minimum_size = Vector2(minf(320, bold.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,19).x + 88),64)
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.add_theme_stylebox_override("normal", BioSkin.button(Color(1.16, 1.03, 1.2) if primary else Color.WHITE))
 	if value == "×":
 		b.custom_minimum_size.x = 58
 		for state: String in ["normal", "hover", "pressed", "disabled"]:
 			var close_style: StyleBox = b.get_theme_stylebox(state).duplicate()
-			close_style.content_margin_left = 12
-			close_style.content_margin_right = 12
+			close_style.content_margin_left = 16
+			close_style.content_margin_right = 16
 			b.add_theme_stylebox_override(state,close_style)
 	b.add_theme_font_override("font",bold)
 	b.add_theme_font_size_override("font_size",19)
@@ -112,7 +113,7 @@ func button(value: String, callback: Callable, primary: bool = false) -> Button:
 		callback.call())
 	return b
 
-func _box(parent: Node, separation: int = 12) -> VBoxContainer:
+func _box(parent: Node, separation: int = 18) -> VBoxContainer:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation",separation)
 	parent.add_child(v)
@@ -120,8 +121,10 @@ func _box(parent: Node, separation: int = 12) -> VBoxContainer:
 
 func _hud_style() -> StyleBoxTexture:
 	var box := BioSkin.panel(0.96)
-	box.content_margin_top = 14
-	box.content_margin_bottom = 14
+	box.content_margin_left = 32
+	box.content_margin_right = 32
+	box.content_margin_top = 24
+	box.content_margin_bottom = 24
 	return box
 
 func _build_hud() -> void:
@@ -156,7 +159,18 @@ func _build_hud() -> void:
 		count.custom_minimum_size.x = 34
 		resource.add_child(count)
 		resource_labels.append(count)
-	row.add_child(button("Ⅱ Меню",func(): open_pause()))
+	var menu_button := button("Ⅱ Меню",func(): open_pause())
+	toolbar_button = menu_button
+	menu_button.tooltip_text = "Меню / пауза"
+	menu_button.custom_minimum_size = Vector2(138,54)
+	for state: String in ["normal", "hover", "pressed", "disabled"]:
+		var toolbar_style: StyleBox = menu_button.get_theme_stylebox(state).duplicate()
+		toolbar_style.content_margin_left = 28
+		toolbar_style.content_margin_right = 28
+		toolbar_style.content_margin_top = 15
+		toolbar_style.content_margin_bottom = 15
+		menu_button.add_theme_stylebox_override(state,toolbar_style)
+	row.add_child(menu_button)
 	hp_panel = PanelContainer.new()
 	hp_panel.name = "HostVitals"
 	hp_panel.add_theme_stylebox_override("panel", _hud_style())
@@ -199,13 +213,16 @@ func _layout() -> void:
 	var view: Vector2 = root.size
 	var edge: float = 16.0 if view.x < 900 else 24.0
 	top_panel.position = Vector2(edge, 12)
-	top_panel.size = Vector2(view.x - edge * 2, 80)
+	top_panel.size = Vector2(view.x - edge * 2, 104)
 	hud_title.visible = view.x >= 1040
+	toolbar_button.text = "Ⅱ" if view.x < 760 else "Ⅱ Меню"
+	toolbar_button.custom_minimum_size.x = 64 if view.x < 760 else 138
 	var compact: bool = view.y < 520
-	hp_panel.size = Vector2(228 if view.x < 900 else 278, 82)
-	hp_panel.position = Vector2(edge, 104 if touch.visible and compact else view.y - (280 if touch.visible else 100))
-	task_panel.size = Vector2(250 if view.x < 900 else 330, 102 if compact else 120)
-	task_panel.position = Vector2(view.x - edge - task_panel.size.x, 104)
+	status_label.visible = not compact
+	hp_panel.size = Vector2(228 if view.x < 900 else 278, 88)
+	hp_panel.position = Vector2(edge, 128 if touch.visible and compact else view.y - (280 if touch.visible else 100))
+	task_panel.size = Vector2(250 if view.x < 900 else 330, 94 if compact else 136)
+	task_panel.position = Vector2(view.x - edge - task_panel.size.x, 128)
 	hint_label.visible = not touch.visible and view.x >= 1100 and view.y >= 600
 	hint_label.position = Vector2((view.x - 610) * 0.5, view.y - 52)
 	hint_label.size = Vector2(610,30)
@@ -229,8 +246,8 @@ func _fit_overlay() -> void:
 	var width: float = minf(overlay_width, view.x - 32.0)
 	if is_instance_valid(upgrade_grid):
 		upgrade_grid.columns = 1 if width < 790.0 else 2
-	var header_height: float = overlay_header.get_combined_minimum_size().y + 14.0 if is_instance_valid(overlay_header) else 0.0
-	var height: float = minf(overlay_content.get_combined_minimum_size().y + 48.0 + header_height, view.y - 32.0)
+	var header_height: float = overlay_header.get_combined_minimum_size().y + 20.0 if is_instance_valid(overlay_header) else 0.0
+	var height: float = minf(overlay_content.get_combined_minimum_size().y + overlay_panel.get_theme_stylebox("panel").get_minimum_size().y + header_height, view.y - 32.0)
 	overlay_panel.size = Vector2(width, maxf(100.0,height))
 	overlay_panel.position = Vector2(24 if overlay_left and view.x >= 1000 else (view.x - width) * 0.5, (view.y - overlay_panel.size.y) * 0.5)
 
@@ -315,14 +332,18 @@ func overlay(title: String, subtitle: String = "", width: float = 980) -> VBoxCo
 	overlay_panel.name = "OrganicMenu"
 	overlay_panel.add_theme_stylebox_override("panel",BioSkin.panel())
 	modal_root.add_child(overlay_panel)
-	var shell := _box(overlay_panel,14)
+	var shell := _box(overlay_panel,20)
 	overlay_scroll = ScrollContainer.new()
 	overlay_scroll.name = "MenuScroll"
 	overlay_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	overlay_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	overlay_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	shell.add_child(overlay_scroll)
-	overlay_content = _box(overlay_scroll,14)
+	var scroll_inset := MarginContainer.new()
+	scroll_inset.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll_inset.add_theme_constant_override("margin_right",12)
+	overlay_scroll.add_child(scroll_inset)
+	overlay_content = _box(scroll_inset,20)
 	overlay_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	overlay_content.minimum_size_changed.connect(_request_layout)
 	if title != "":
@@ -392,7 +413,7 @@ func open_map() -> void:
 		var card := PanelContainer.new()
 		card.add_theme_stylebox_override("panel",style(Color("152831")))
 		missions.add_child(card)
-		var box := _box(card,7)
+		var box := _box(card,12)
 		box.add_child(label("0%d  /  %s" % [i+1,data["biome"]],12,ACCENT if i == 0 else Color("d49bbf")))
 		box.add_child(paragraph(data["name"],24,TEXT))
 		box.add_child(paragraph(data["description"],15))
@@ -453,7 +474,7 @@ func open_upgrades(ship: bool = false) -> void:
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.add_theme_stylebox_override("panel",style(Color("15262f"),Color(data["color"],0.4)))
 		grid.add_child(card)
-		var box := _box(card,7)
+		var box := _box(card,12)
 		box.add_child(paragraph(data["name"],21,data["color"]))
 		box.add_child(label("● ".repeat(level) + "○ ".repeat(max_level-level),17,data["color"]))
 		box.add_child(paragraph(data["description"],15))
