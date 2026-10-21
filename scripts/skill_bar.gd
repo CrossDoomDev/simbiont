@@ -115,9 +115,9 @@ func _process(delta: float) -> void:
 		var reason: String = skills.failure_reason(i)
 		buttons[i].disabled = reason != ""
 		icons[i].modulate = Color(1,1,1,0.38 if reason != "" else 1.0)
-		statuses[i].text = "%.1fс" % skills.cooldowns[i] if skills.cooldowns[i] > 0 else "%d Э" % data["cost"]
+		statuses[i].text = "%.1fс" % skills.cooldowns[i] if skills.cooldowns[i] > 0 else (("%d Э" % skills.cost(i)) if is_equal_approx(skills.cost(i),roundf(skills.cost(i))) else ("%.1f Э" % skills.cost(i)))
 		statuses[i].add_theme_color_override("font_color",Color("bba8c8") if reason != "" else data["color"])
-		buttons[i].tooltip_text = "%s · %s\n%s\nЭнергия: %d. Перезарядка: %d с.%s" % [data["key"],data["name"],data["description"],data["cost"],data["cooldown"],"\n"+reason if reason != "" else ""]
+		buttons[i].tooltip_text = "%s · %s\n%s\nЭнергия: %.1f. Перезарядка: %.1f с.%s" % [data["key"],data["name"],data["description"],skills.cost(i),skills.recharge(i),"\n"+reason if reason != "" else ""]
 
 func _draw() -> void:
 	draw_style_box(BioSkin.panel(0.98),Rect2(Vector2.ZERO,size))

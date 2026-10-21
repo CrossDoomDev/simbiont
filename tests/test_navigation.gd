@@ -51,7 +51,7 @@ func _run() -> void:
 	await click_point(1)
 	check(game.ui.selected_mission == 1 and game.ui.navigation_map.selected == 1, "actual pointer click selects swamp point")
 	check(game.mode == "ship" and game.ui.page == "map", "selecting point does not launch mission")
-	check(game.ui.map_name.text == GameData.MISSIONS[1]["name"] and game.ui.map_description.text == GameData.MISSIONS[1]["description"], "details follow selected point")
+	check(game.ui.map_name.text == GameData.MISSIONS[1]["name"] and game.ui.map_description.text.begins_with(GameData.MISSIONS[1]["description"]) and game.ui.map_description.text.contains("Протокол:"), "details follow selected point")
 	check(game.ui.map_launch.disabled and game.ui.map_lock.visible, "locked landing point explains heart requirement")
 	await click_point(0)
 	check(game.ui.selected_mission == 0 and not game.ui.map_launch.disabled and not game.ui.map_lock.visible, "forest selection restores available travel action")

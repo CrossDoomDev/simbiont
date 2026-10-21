@@ -140,18 +140,18 @@ func _regen_checks() -> void:
 	progress.upgrades["regeneration"] = 3
 	progress.modules["regeneration"] = 4
 	host.apply_stats()
-	check(is_equal_approx(host.max_hp, 165.0), "existing permanent health upgrades retain their maximum HP benefit")
-	check(is_equal_approx(host.permanent_regen, 0.25), "fully developed permanent healing is only 0.25 HP/s")
+	check(is_equal_approx(host.max_hp, 145.0), "existing permanent health upgrades retain their maximum HP benefit")
+	check(is_equal_approx(host.permanent_regen, 0.15), "ship restoration adds no combat regeneration")
 	host.hp = 100.0
 	host._host_tick(10.0)
-	check(is_equal_approx(host.hp, 102.5), "ten undamaged seconds restore 2.5 HP with all permanent upgrades")
+	check(is_equal_approx(host.hp, 101.5), "ten undamaged seconds use character regeneration only")
 	host.invulnerable = 0.0
 	host.take_damage(10.0)
 	var hurt_hp: float = host.hp
 	host._host_tick(4.9)
 	check(is_equal_approx(host.hp, hurt_hp), "healing stays disabled throughout the five-second after-hit delay")
 	host._host_tick(0.3)
-	check(is_equal_approx(host.hp, hurt_hp + 0.05), "a frame crossing the delay heals only its undamaged remainder")
+	check(is_equal_approx(host.hp, hurt_hp + 0.03), "a frame crossing the delay heals only its undamaged remainder")
 	for i: int in range(3):
 		host.invulnerable = 0.0
 		host.take_damage(2.0)

@@ -38,6 +38,8 @@ var manual_aim := Vector2.ZERO
 var manual_fire := false
 var detection_radius: float = 350.0
 var permanent_regen: float = 0.0
+var traits: Dictionary = {}
+var revive_used := false
 var regen_delay_remaining: float = 0.0
 var attack_range: float = 350.0
 var windup_duration: float = 0.65
@@ -131,6 +133,7 @@ static func create_sprite_frames(sprite_path: String, actor_kind: String) -> Spr
 
 func apply_stats() -> void:
 	var stats: Dictionary = Progress.player_stats()
+	traits = stats.duplicate()
 	max_hp = float(stats.get("max_hp", 100))
 	hp = max_hp
 	speed = float(stats.get("speed", 175))
@@ -407,9 +410,11 @@ func apply_skill_control(duration: float, ratio: float) -> void:
 	elif is_equal_approx(ratio,skill_slow_ratio):
 		skill_slow_remaining = maxf(skill_slow_remaining,duration)
 
-func take_damage(amount: float) -> void:
+func take_damage(amount: float, projectile_hit: bool = false) -> void:
 	if dead or invulnerable > 0 or not is_finite(amount) or amount <= 0.0:
 		return
+	if kind == "host" and projectile_hit:
+		amount *= 1.0-float(traits.get("projectile_ward",0))
 	var dealt := maxf(1.0, amount * (1.0 - clampf(armor, 0.0, 0.75)))
 	if kind == "host" and game.has_method("absorb_host_damage"):
 		dealt = game.absorb_host_damage(dealt)
@@ -425,12 +430,17 @@ func take_damage(amount: float) -> void:
 	flash = create_tween()
 	flash.tween_property(flash_target, "modulate", Color.WHITE, 0.16)
 	if kind == "host":
-		invulnerable = 0.55
-		regen_delay_remaining = float(GameData.REGEN["damage_delay"])
+		invulnerable = 0.55 + float(traits.get("hurt_grace",0))
+		regen_delay_remaining = float(traits.get("regen_delay",GameData.REGEN["damage_delay"]))
 		Audio.play_sfx("hurt")
 		game.shake = 5.0
 	else:
 		Audio.play_sfx("hit")
+	if hp <= 0 and kind == "host" and not revive_used and float(traits.get("revive",0)) > 0:
+		revive_used = true
+		hp = max_hp*0.25
+		invulnerable = 2.0
+		game.float_text(global_position+Vector2(0,-55),"ВТОРОЕ СЕРДЦЕ",Color("a9e991"))
 	if hp <= 0:
 		dead = true
 		if kind == "guardian":

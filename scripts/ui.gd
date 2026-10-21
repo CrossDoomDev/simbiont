@@ -43,7 +43,7 @@ var overlay_scroll: ScrollContainer
 var overlay_header: HBoxContainer
 var overlay_width := 980.0
 var overlay_left := false
-var upgrade_grid: GridContainer
+var evolution_tree: Control
 var layout_dirty := true
 var toolbar_button: Button
 var last_layout_size := Vector2.ZERO
@@ -263,8 +263,6 @@ func _fit_overlay() -> void:
 		return
 	var view: Vector2 = root.size
 	var width: float = minf(overlay_width, view.x - 32.0)
-	if is_instance_valid(upgrade_grid):
-		upgrade_grid.columns = 1 if width < 790.0 else 2
 	var header_height: float = overlay_header.get_combined_minimum_size().y + 20.0 if is_instance_valid(overlay_header) else 0.0
 	var height: float = minf(overlay_content.get_combined_minimum_size().y + overlay_panel.get_theme_stylebox("panel").get_minimum_size().y + header_height, view.y - 32.0)
 	overlay_panel.size = Vector2(width, maxf(100.0,height))
@@ -329,7 +327,7 @@ func clear_overlay() -> void:
 	overlay_scroll = null
 	overlay_header = null
 	overlay_content = null
-	upgrade_grid = null
+	evolution_tree = null
 	overlay_left = false
 	for child in modal_root.get_children():
 		modal_root.remove_child(child)
@@ -446,7 +444,7 @@ func _select_map_mission(index: int) -> void:
 	var data: Dictionary = GameData.MISSIONS[selected_mission]
 	map_biome.text = data["biome"]
 	map_name.text = data["name"]
-	map_description.text = data["description"]
+	map_description.text = str(data["description"])+"\n\nПротокол: "+str({"normal":"Обычная вылазка","swarm":"Рой · частые волны / повышенная добыча","predator":"Хищники · крепкие враги / повышенная добыча"}.get(Progress.protocol,"Обычная вылазка"))
 	var available: bool = Progress.mission_unlocked(selected_mission)
 	map_lock.text = "Для доступа восстановите сердце корабля до II стадии."
 	map_lock.visible = not available
@@ -497,40 +495,65 @@ func open_upgrades(ship: bool = false) -> void:
 	if game.mode != "ship":
 		return
 	page = "modules" if ship else "upgrades"
-	var v := overlay("Пробуждение корабля" if ship else "Анатомия симбионта", "Ресурсы хранилища общие для корабля и носителя. Изменения сохраняются сразу.")
-	var grid := GridContainer.new()
-	upgrade_grid = grid
-	grid.columns = 2
-	grid.add_theme_constant_override("h_separation",16)
-	grid.add_theme_constant_override("v_separation",14)
-	v.add_child(grid)
-	var configs: Dictionary = GameData.MODULES if ship else GameData.UPGRADES
-	for id: String in configs:
-		var data: Dictionary = configs[id]
-		var levels: Dictionary = Progress.modules if ship else Progress.upgrades
-		var level: int = int(levels[id])
-		var max_level: int = int(data["max_level"])
-		var cost: Array = GameData.module_cost(id,level) if ship else GameData.upgrade_cost(id,level)
-		var card := PanelContainer.new()
-		card.custom_minimum_size = Vector2(230,0)
-		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		card.add_theme_stylebox_override("panel",style(Color("15262f"),Color(data["color"],0.4)))
-		grid.add_child(card)
-		var box := _box(card,12)
-		box.add_child(paragraph(data["name"],21,data["color"]))
-		box.add_child(label("● ".repeat(level) + "○ ".repeat(max_level-level),17,data["color"]))
-		box.add_child(paragraph(data["description"],15))
-		box.add_child(paragraph(costs(cost),14,MUTED))
-		var buy := button("Развить  ·  уровень %d" % (level+1) if level<max_level else "Развитие завершено",func():
-			var ok: bool = Progress.purchase_module(id) if ship else Progress.purchase_upgrade(id)
-			if ok:
+	var v := overlay("Пробуждение корабля" if ship else "Анатомия симбионта", "",1280)
+	var tree := preload("res://scripts/evolution_tree.gd").new()
+	tree.ui = self
+	tree.ship = ship
+	evolution_tree = tree
+	if not ship and not Progress.legacy_traits.is_empty():
+		v.add_child(paragraph("Наследие прежнего симбиоза: ранее купленные боевые бонусы корабля перенесены в постоянные гены носителя.",14))
+	v.add_child(tree)
+
+func open_archive() -> void:
+	if game.mode != "ship" or int(Progress.modules.get("archive_door",0)) == 0:
+		return
+	page = "archive"
+	var v := overlay("Архив отпечатков","Память живого корабля сохраняет ваши возвращения.",900)
+	v.add_child(paragraph("Доступно записей: %d. Разведка пещер: %s. Эхо врагов: %s." % [Progress.history_limit(),"включено" if int(Progress.modules.get("cave_echo",0)) > 0 else "не восстановлено","включено" if int(Progress.modules.get("threat_echo",0)) > 0 else "не восстановлено"],18))
+	if Progress.history.is_empty():
+		v.add_child(paragraph("Пока нет отпечатков вылазок. Вернитесь с поверхности — и память начнёт расти.",18))
+	for entry: Dictionary in Progress.history.duplicate():
+		v.add_child(paragraph(("Возвращение" if entry.get("success",false) else "Разрыв связи")+" · "+costs(entry.get("loot",[0,0,0,0])),16))
+	v.add_child(button("Развить память корабля",func(): open_upgrades(true),true))
+
+func open_refinery() -> void:
+	if game.mode != "ship" or int(Progress.modules.get("refinery_door",0)) == 0:
+		return
+	page = "refinery"
+	var v := overlay("Камера переработки","Ресурсы превращаются в живую ткань. Каждая операция сразу сохраняется.",860)
+	v.add_child(paragraph("В хранилище: "+costs(Progress.bank),17))
+	if Progress.recipes().is_empty():
+		v.add_child(paragraph("Отсек открыт. Восстановите «Ферментную перегонку» в дереве корабля, чтобы запустить переработчик.",18))
+	for recipe: Dictionary in Progress.recipes():
+		v.add_child(paragraph(recipe["name"]+"
+"+costs(recipe["cost"])+" → "+costs(recipe["output"]),18))
+		var b := button("Переработать · "+str(recipe["name"]),func():
+			if Progress.convert(recipe["id"]):
 				Audio.play_sfx("upgrade")
-				game.update_ship()
-				open_upgrades(ship)
+				open_refinery()
 			else:
-				toast("Недостаточно ресурсов или сохранение недоступно"),true)
-		buy.disabled = level>=max_level or not Progress.can_afford(cost)
-		box.add_child(buy)
+				toast("Переработка не выполнена: проверьте ресурсы и доступность сохранения."),true)
+		b.disabled = not Progress.can_afford(recipe["cost"])
+		v.add_child(b)
+	v.add_child(button("Развить переработку",func(): open_upgrades(true)))
+
+func open_quarantine() -> void:
+	if game.mode != "ship" or int(Progress.modules.get("quarantine_door",0)) == 0:
+		return
+	page = "quarantine"
+	var v := overlay("Карантинные протоколы","Выберите условия следующей вылазки. Один активный протокол; награда начисляется только после выполнения цели.",900)
+	var descriptions := {"normal":"Обычная вылазка · стандартные враги и добыча","swarm":"Рой · волны на 25% чаще; +25% биомассы, ткани и фермента при успехе","predator":"Хищники · +25% здоровья врагам; +50% ткани и фермента при успехе"}
+	for id: String in descriptions:
+		v.add_child(paragraph(descriptions[id],18))
+		var available: bool = id == "normal" or int(Progress.modules.get(id+"_protocol",0)) > 0
+		var b := button("✓ Выбран" if Progress.protocol == id else ("Выбрать протокол" if available else "Восстановите ветвь карантина"),func():
+			if Progress.set_protocol(id):
+				open_quarantine()
+			else:
+				toast("Протокол не сохранён."),Progress.protocol == id)
+		b.disabled = not available
+		v.add_child(b)
+	v.add_child(button("Развить карантин",func(): open_upgrades(true)))
 
 func open_storage() -> void:
 	page = "storage"
@@ -554,7 +577,7 @@ func open_heart() -> void:
 
 func open_results(success: bool, loot: Array, elapsed: float) -> void:
 	page = "results"
-	var v := overlay("Связь сохранена" if success else "Симбионт вернул вас", "Вылазка завершена за %02d:%02d. %s" % [int(elapsed)/60,int(elapsed)%60,"Добыча передана кораблю." if success else "Сохранено 50% ресурсов этой вылазки."],720)
+	var v := overlay("Связь сохранена" if success else "Симбионт вернул вас", "Вылазка завершена за %02d:%02d. %s" % [int(elapsed)/60,int(elapsed)%60,"Добыча передана кораблю." if success else "Сохранено %d%% ресурсов этой вылазки." % roundi(Progress.death_keep_ratio()*100)],720)
 	for i in 4:
 		v.add_child(label("+ %d     %s" % [loot[i],GameData.RESOURCES[i]["name"]],22,GameData.RESOURCES[i]["color"]))
 	v.add_child(button("Почувствовать корабль",func(): close(),true))

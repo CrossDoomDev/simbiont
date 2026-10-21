@@ -60,7 +60,7 @@ func _run() -> void:
 			var loaded_scene: PackedScene = load(path) as PackedScene
 			var restored: Node2D = loaded_scene.instantiate() as Node2D
 			root.add_child(restored)
-			if restored.floor_map == null or restored.walls == null or restored.entities == null or restored.obstacles.is_empty() or (context == "ship" and restored.organs.size() != 5):
+			if restored.floor_map == null or restored.walls == null or restored.entities == null or restored.obstacles.is_empty() or (context == "ship" and restored.organs.size() != 8):
 				push_error("BAKE_RESTORE_FAILED: " + path)
 				failures += 1
 			restored.free()

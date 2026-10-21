@@ -45,10 +45,10 @@ func _run() -> void:
 	world.walls.update_internals()
 	await physics_frame
 	await physics_frame
-	check(world.bounds.size == Vector2(2048,1536), "ship retains the multi-chamber footprint")
+	check(world.bounds.size == Vector2(2816,2176), "ship expands to include three new chambers")
 	check(world.floor_map.get_used_cells().size() >= 1000, "ship has a substantial editable native floor")
 	check(world.walls.get_used_cells().size() > 200, "all chamber and corridor boundaries have native collision tiles")
-	check(world.organs.size() == 5, "all five functional organs survive redesign")
+	check(world.organs.size() == 8, "five original organs and three new chamber organs exist")
 	check(world.is_walkable(world.spawn_point, 25), "spawn has full player clearance")
 	check(world.is_walkable(world.spawn_point + Vector2(70,0), 25), "initial rightward movement is open")
 	check(not world.is_walkable(Vector2(1024,1100), 0), "hull gap between lower chambers is solid")
@@ -70,6 +70,16 @@ func _run() -> void:
 	check(cache != null and cache.world_2d != world.get_world_2d(), "tissue cache has an independent canvas and cannot render itself")
 	var surface: Sprite2D = world.get_node_or_null("RibsMembranesAndVessels/RenderedTissue") as Sprite2D
 	check(surface != null and surface.texture is ViewportTexture and not surface.centered, "cached tissue stays aligned with native world coordinates")
+	var progress: Node = root.get_node("Progress")
+	for gate: Node2D in world.gates:
+		check(gate.visible,"new chamber starts sealed")
+		check(not world.is_walkable(gate.position,16),"sealed membrane blocks route planning")
+		progress.modules[gate.definition["id"]] = 1
+	world.refresh_organs()
+	await physics_frame
+	await physics_frame
+	for gate: Node2D in world.gates:
+		check(not gate.visible and gate.shape.disabled,"restored chamber disables the physical seal")
 	var body := CharacterBody2D.new()
 	body.collision_layer = 2
 	body.collision_mask = 1

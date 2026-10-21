@@ -59,19 +59,17 @@ func _find_label(node: Node, text: String) -> Label:
 	return null
 
 func _buy_card(name: String) -> bool:
-	var label: Label = _find_label(game.ui.modal_root, name)
-	if label == null:
-		check(false, "upgrade card exists: " + name)
-		return false
-	var parent: Node = label.get_parent()
-	while parent != null and not parent is PanelContainer:
-		parent = parent.get_parent()
-	var matches: Array[Button] = _buttons(parent, "Развить", true) if parent != null else []
-	if matches.is_empty() or matches[0].disabled:
-		check(false, "upgrade card can be bought: " + name)
-		return false
-	matches[0].pressed.emit()
-	return true
+	var tree: Node = game.ui.evolution_tree
+	for id: String in tree.configs:
+		if tree.configs[id]["name"] == name:
+			tree.node_buttons[id].pressed.emit()
+			if tree.purchase.disabled:
+				check(false,"tree node can be bought: "+name)
+				return false
+			tree.purchase.pressed.emit()
+			return true
+	check(false,"tree node exists: "+name)
+	return false
 
 func _clear(group: String) -> void:
 	for node: Node in get_nodes_in_group(group):
@@ -204,7 +202,7 @@ func _run() -> void:
 	check(game.ui.page == "tutorial", "first launch opens tutorial")
 	_click("Я слышу тебя")
 	check(progress.tutorial and not game.modal, "tutorial callback saves completion and releases control")
-	check(game.world.organs.size() == 5, "ship has all five organic interactions")
+	check(game.world.organs.size() == 8, "ship has five original organs and three additional sealed organs")
 	check(game.world.floor_map is TileMapLayer and game.world.walls is TileMapLayer, "ship uses native tilemap layers")
 	check(game.player.legs_anim is AnimatedSprite2D and game.player.legs_anim.sprite_frames.get_frame_count("walk_0") == 2, "host uses native two-frame walk animation")
 	await _frames()
@@ -220,6 +218,8 @@ func _run() -> void:
 	game.player.move_input = Vector2.ZERO
 	var expected_pages: Dictionary = {"navigation": "map", "symbiont": "upgrades", "heart": "heart", "feeding": "modules", "storage": "storage"}
 	for organ: Node2D in game.world.organs:
+		if not organ.visible:
+			continue
 		var id: String = str(organ.get_meta("organ_id"))
 		game.player.position = organ.position + Vector2(0, 100)
 		game.near_organ = organ

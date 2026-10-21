@@ -8,6 +8,7 @@ const ShipPlan = preload("res://scripts/ship_layout.gd")
 @export var obstacles: Array[Vector3] = []
 var organs: Array[Node2D] = []
 var caves: Array[Node2D] = []
+var gates: Array[Node2D] = []
 @export var nest_positions: Array[Vector2] = []
 @export var spawn_point: Vector2 = Vector2(768, 660)
 var floor_map: TileMapLayer
@@ -27,6 +28,11 @@ func restore_bindings() -> void:
 	decorations = get_node_or_null("BiologicalDecorations") as Node2D
 	entities = get_node_or_null("Actors") as Node2D
 	organs.clear()
+	gates.clear()
+	var gate_root := get_node_or_null("SealedMembranes")
+	if gate_root != null:
+		for gate: Node in gate_root.get_children():
+			gates.append(gate)
 	caves.clear()
 	var cave_root := get_node_or_null("CaveEntrances")
 	if cave_root != null:
@@ -148,7 +154,7 @@ func _build_ship(rng: RandomNumberGenerator) -> void:
 	cached_tissue.texture = tissue_view.get_texture()
 	cached_tissue.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	surface.add_child(cached_tissue)
-	var atlas_indices: Dictionary = {"navigation": 0, "symbiont": 1, "heart": 2, "feeding": 3, "storage": 4}
+	var atlas_indices: Dictionary = {"navigation": 0, "symbiont": 1, "heart": 2, "feeding": 3, "storage": 4,"archive":0,"refinery":4,"quarantine":1}
 	for room: Dictionary in ShipPlan.ROOMS:
 		_make_organ(room.id, room.label, room.organ, int(atlas_indices[room.id]), room.color)
 		# Shaded roots are drawn by the shared tissue renderer. Low diffuse
@@ -156,6 +162,14 @@ func _build_ship(rng: RandomNumberGenerator) -> void:
 		for side: float in [-1.0, 1.0]:
 			var light: Sprite2D = BioVisual.add_glow(surface, Color(room.color, 0.17), 410)
 			light.position = room.organ + Vector2(side * 94, -35)
+	var gate_root := Node2D.new()
+	gate_root.name = "SealedMembranes"
+	add_child(gate_root)
+	for definition: Dictionary in ShipPlan.GATES:
+		var gate := preload("res://scripts/ship_gate.gd").new()
+		gate.definition = definition
+		gate_root.add_child(gate)
+		gates.append(gate)
 	# A branching vascular spine, visible through the heart hall. There is no
 	# decorative circular platform beneath the host.
 	var spine := Line2D.new()
@@ -218,10 +232,16 @@ func _make_organ(id: String, label: String, pos: Vector2, index: int, color: Col
 	obstacles.append(Vector3(pos.x,pos.y,circle.radius))
 
 func refresh_organs() -> void:
+	for gate: Node2D in gates:
+		gate.refresh()
 	for organ: Node2D in organs:
 		if not is_instance_valid(organ):
 			continue
 		var id: String = str(organ.get_meta("organ_id", ""))
+		var room := ShipPlan.room_for(id)
+		var unlocked: bool = not room.has("unlock") or int(Progress.modules.get(room.get("unlock",""),0)) > 0
+		organ.visible = unlocked
+		organ.set_meta("locked",not unlocked)
 		var stage: int = int(Progress.modules.get(id, 0))
 		if id == "symbiont":
 			var total: int = 0
@@ -234,9 +254,11 @@ func refresh_organs() -> void:
 		var sprite: Sprite2D = organ.get_node("LivingTissue/OrganSprite") as Sprite2D
 		var glow: Sprite2D = organ.get_node("LivingTissue/Bioluminescence") as Sprite2D
 		var vitality: float = 0.65 + stage * 0.0875
+		if id == "heart" and int(Progress.modules.get("living_legacy",0)) > 0:
+			vitality += 0.2
 		sprite.modulate = Color(0.55, 0.43, 0.52).lerp(Color.WHITE, vitality)
 		var color: Color = glow.get_meta("base_color", Color.WHITE)
-		color.a *= 0.8 + stage * 0.09
+		color.a *= 0.8 + stage * 0.09 + (0.35 if id == "heart" and int(Progress.modules.get("living_legacy",0)) > 0 else 0.0)
 		glow.modulate = color
 
 func _build_forest(rng: RandomNumberGenerator) -> void:
@@ -324,6 +346,10 @@ func _build_caves() -> void:
 			caves.append(cave)
 
 func is_walkable(point: Vector2, clearance: float = 25) -> bool:
+	if biome == "ship":
+		for gate: Dictionary in ShipPlan.GATES:
+			if int(Progress.modules.get(gate["id"],0)) <= 0 and (gate["rect"] as Rect2).grow(clearance).has_point(point):
+				return false
 	if biome == "ship":
 		if floor_map == null or floor_map.get_cell_source_id(floor_map.local_to_map(point)) == -1:
 			return false

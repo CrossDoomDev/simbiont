@@ -65,13 +65,16 @@ func _run() -> void:
 			check(_inside(game.ui.overlay_panel, area), "%s panel stays inside %s" % [mode, dimensions])
 			check(game.ui.overlay_panel.get_theme_stylebox("panel") is StyleBoxTexture, "%s uses generated stretchable chitin" % mode)
 			check(game.ui.overlay_content.size.x <= game.ui.overlay_scroll.size.x + 1.0, "%s never needs horizontal scrolling" % mode)
+			if mode in ["upgrades","modules"] and dimensions.y <= 360:
+				var graph_view: Rect2 = game.ui.evolution_tree.scroll.get_global_rect().intersection(game.ui.overlay_scroll.get_global_rect())
+				check(graph_view.size.y >= 80,"short window initially exposes the actual tree graph")
 			game.ui.overlay_scroll.scroll_vertical = 1000000
 			await _settle()
 			var buttons: Array[Button] = _buttons(game.ui.overlay_content)
 			if not buttons.is_empty():
-				check(_inside(buttons[-1],game.ui.overlay_scroll.get_global_rect()), "%s final action is reachable by vertical scrolling" % mode)
+				check(_inside(buttons[-1],game.ui.overlay_scroll.get_global_rect()), "%s final action is reachable by vertical scrolling at %s" % [mode,dimensions])
 			if mode in ["upgrades", "modules"]:
-				check(game.ui.upgrade_grid.columns == (1 if dimensions.x < 822 else 2), "upgrade cards reflow at narrow widths")
+				check(game.ui.evolution_tree.body.vertical == (game.ui.evolution_tree.size.x < 870), "tree and detail panel stack at narrow widths")
 		game.ui.close()
 		for touch_enabled: bool in [false,true]:
 			progress.settings["touch"] = touch_enabled

@@ -36,19 +36,22 @@ const MISSIONS: Array = [
 	{"id": 1, "name": "Багровая низина", "biome": "Споровые топи", "description": "Подавите три споровых сердца. Из каждого выйдет страж — уничтожьте всех троих. Здесь ткани плотнее, а фермент нестабилен.", "difficulty": "Высокая", "rewards": ["Плотная ткань", "Энергофермент", "Органическое ядро"], "heart_required": 2, "nodes": 3, "node_hp": 165.0, "enemy_multiplier": 1.3, "color": Color("ba88a8")},
 ]
 
-const UPGRADES: Dictionary = {
+const LEGACY_UPGRADES: Dictionary = {
 	"regeneration": {"name": "Регенеративная ткань", "description": "+15 здоровья и +0,05 HP/с за уровень. Лечение начинается через 5 с без урона.", "max_level": 3, "costs": [[12, 0, 0, 0], [24, 4, 2, 0], [42, 9, 6, 1]], "color": Color("b5d987")},
 	"muscle": {"name": "Нейромышечные волокна", "description": "+8% скорости за уровень", "max_level": 3, "costs": [[14, 2, 0, 0], [28, 6, 2, 0], [46, 10, 6, 1]], "color": Color("dbb27c")},
 	"resonator": {"name": "Боевой резонатор", "description": "+10% урона и +7% частоты за уровень", "max_level": 3, "costs": [[15, 4, 0, 0], [30, 8, 3, 0], [50, 12, 8, 1]], "color": Color("d997c5")},
 	"receptor": {"name": "Нейронный рецептор", "description": "+25% подбора и +15% обнаружения за уровень", "max_level": 3, "costs": [[10, 0, 3, 0], [22, 3, 6, 0], [36, 6, 12, 1]], "color": Color("83d7d4")},
 }
 
-const MODULES: Dictionary = {
-	"heart": {"name": "Энергетическое сердце", "description": "Пробуждает корабль. Стадия II открывает Багровую низину. +5% урона за стадию.", "max_level": 4, "costs": [[25, 0, 5, 0], [50, 0, 12, 1], [75, 12, 20, 2], [100, 20, 30, 3]], "color": Color("e5a167")},
-	"navigation": {"name": "Нейронное ядро", "description": "Восстанавливает внешние сигналы. +25 к радиусу обнаружения за стадию.", "max_level": 4, "costs": [[18, 3, 5, 0], [32, 6, 9, 1], [50, 10, 15, 1], [75, 15, 24, 2]], "color": Color("78d7d4")},
-	"regeneration": {"name": "Генетический инкубатор", "description": "+5 здоровья и +0,025 HP/с за стадию. Лечение начинается через 5 с без урона.", "max_level": 4, "costs": [[20, 4, 3, 0], [35, 8, 6, 1], [55, 12, 10, 1], [80, 18, 18, 2]], "color": Color("c28bda")},
-	"storage": {"name": "Питающая камера", "description": "Оживляет сосуды хранилища. +8 к радиусу подбора за стадию.", "max_level": 4, "costs": [[16, 4, 2, 0], [28, 8, 5, 0], [45, 12, 9, 1], [65, 20, 15, 2]], "color": Color("98cf8b")},
-}
+const Evolution = preload("res://scripts/evolution_data.gd")
+static var UPGRADES: Dictionary = Evolution.host_nodes(LEGACY_UPGRADES)
+static var MODULES: Dictionary = Evolution.ship_nodes()
+
+static func default_levels(ship: bool) -> Dictionary:
+	var result := {}
+	for id: String in MODULES if ship else UPGRADES:
+		result[id] = 0
+	return result
 
 static func upgrade_cost(id: String, level: int) -> Array:
 	if not UPGRADES.has(id) or level < 0 or level >= int(UPGRADES[id]["max_level"]):
@@ -65,4 +68,17 @@ static func stats(levels: Dictionary) -> Dictionary:
 	var muscle: int = clampi(int(levels.get("muscle", 0)), 0, 3)
 	var resonator: int = clampi(int(levels.get("resonator", 0)), 0, 3)
 	var receptor: int = clampi(int(levels.get("receptor", 0)), 0, 3)
-	return {"hp": 100.0 + regeneration * 15.0, "max_hp": 100.0 + regeneration * 15.0, "speed": 175.0 * (1.0 + muscle * 0.08), "damage": 10.0 * (1.0 + resonator * 0.10), "fire_interval": 0.4 / (1.0 + resonator * 0.07), "pickup_radius": 58.0 * (1.0 + receptor * 0.25), "detection_radius": 350.0 * (1.0 + receptor * 0.15), "regen": regeneration * float(REGEN["upgrade_rate"]), "armor": 0.0}
+	var result := {"hp": 100.0 + regeneration * 15.0, "max_hp": 100.0 + regeneration * 15.0, "speed": 175.0 * (1.0 + muscle * 0.08), "damage": 10.0 * (1.0 + resonator * 0.10), "fire_interval": 0.4 / (1.0 + resonator * 0.07), "pickup_radius": 58.0 * (1.0 + receptor * 0.25), "detection_radius": 350.0 * (1.0 + receptor * 0.15), "regen": regeneration * float(REGEN["upgrade_rate"]), "armor": 0.0}
+	var traits := Evolution.traits(UPGRADES,levels)
+	result.merge(traits)
+	result["armor"] = float(traits.get("armor",0))
+	result["max_hp"] += float(traits.get("hp_flat",0))
+	result["hp"] = result["max_hp"]
+	result["damage"] *= 1.0 + float(traits.get("damage_bonus",0))
+	result["speed"] *= 1.0 + float(traits.get("speed_bonus",0))
+	result["fire_interval"] /= 1.0 + float(traits.get("fire_bonus",0))
+	result["pickup_radius"] *= 1.0 + float(traits.get("pickup_bonus",0))
+	result["detection_radius"] *= 1.0 + float(traits.get("detection_bonus",0))
+	result["regen"] += float(traits.get("regen_flat",0))
+	result["regen_delay"] = maxf(1.0,5.0-float(traits.get("regen_delay_reduction",0)))
+	return result

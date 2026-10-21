@@ -13,6 +13,7 @@ var mission_id := 0
 var run_loot: Array = [0,0,0,0]
 var run_time := 0.0
 var run_id := ""
+var run_protocol := "normal"
 var nodes_destroyed := 0
 var boss_spawned := false
 var boss_defeated := false
@@ -137,6 +138,8 @@ func _physics_process(delta: float) -> void:
 		near_organ = null
 		var best := 132.0
 		for organ in world.organs:
+			if not organ.visible:
+				continue
 			var distance := player.position.distance_to(organ.position)
 			if distance<best:
 				best = distance
@@ -159,6 +162,8 @@ func cast_skill(index: int, from_bar: bool = false) -> bool:
 
 func gain_combat_energy(actual_damage: float, killed: bool) -> void:
 	skills.gain_damage(actual_damage,killed)
+	if is_instance_valid(player) and not player.dead:
+		player.hp = minf(player.max_hp,player.hp+actual_damage*float(player.traits.get("lifesteal",0)))
 
 func absorb_host_damage(amount: float) -> float:
 	return skills.absorb_damage(amount)
@@ -195,11 +200,15 @@ func interact() -> void:
 		"heart": ui.open_heart()
 		"feeding": ui.open_upgrades(true)
 		"storage": ui.open_storage()
+		"archive": ui.open_archive()
+		"refinery": ui.open_refinery()
+		"quarantine": ui.open_quarantine()
 
 func start_mission(id: int) -> void:
 	if transitioning or not Progress.mission_unlocked(id):
 		return
 	mission_id = id
+	run_protocol = Progress.protocol
 	transitioning = true
 	ui.clear_overlay()
 	ui.page = ""
@@ -244,11 +253,8 @@ func finish_mission(success: bool) -> void:
 		return
 	transitioning = true
 	set_modal(true)
-	var earned: Array = run_loot.duplicate()
-	if not success:
-		for i in 4:
-			earned[i] = int(floor(float(earned[i])*GameData.DEATH_KEEP_RATIO))
-	if not Progress.deposit_run(run_loot,success,run_id):
+	var earned: Array = Progress.credited_loot(run_loot,success,run_protocol)
+	if not Progress.deposit_run(run_loot,success,run_id,run_protocol):
 		transitioning = false
 		ui.toast("Не удалось сохранить добычу. Повторите возвращение.")
 		return
@@ -274,7 +280,7 @@ func update_ship() -> void:
 		return
 	for organ in world.organs:
 		var id: String = organ.get_meta("organ_id")
-		var level: int = int(Progress.modules.get({"heart":"heart","navigation":"navigation","symbiont":"regeneration","feeding":"storage","storage":"storage"}[id],0))
+		var level: int = int(Progress.modules.get({"heart":"heart","navigation":"navigation","symbiont":"regeneration","feeding":"storage","storage":"storage","archive":"navigation","refinery":"storage","quarantine":"regeneration"}.get(id,"heart"),0))
 		var visual: Node2D = organ.get_node("LivingTissue")
 		visual.modulate = Color.WHITE * (0.95+level*0.07)
 		visual.modulate.a = 1
@@ -289,13 +295,27 @@ func fire(source: BioActor, aim: Vector2, hostile: bool) -> void:
 	if get_tree().get_nodes_in_group("projectiles").size() >= limit:
 		return
 	var directions: Array[Vector2] = [aim]
+	if not hostile and float(source.traits.get("multishot",0)) > 0:
+		directions = [aim.rotated(-0.12),aim,aim.rotated(0.12)]
 	for direction in directions:
+		if get_tree().get_nodes_in_group("projectiles").size() >= limit:
+			break
 		var bullet := BioProjectile.new()
 		bullet.game = self
 		bullet.direction = direction.normalized()
 		bullet.hostile = hostile
 		bullet.damage = source.damage
-		bullet.speed = float(GameData.ENEMIES[source.kind].get("projectile_speed", 135.0)) if hostile else 550.0
+		if not hostile:
+			bullet.pierce = int(source.traits.get("pierce",0))
+			bullet.execute_bonus = float(source.traits.get("execute_bonus",0))
+			bullet.boss_bonus = float(source.traits.get("boss_damage",0))
+			if source.velocity.length_squared() > 4:
+				bullet.damage *= 1.0+float(source.traits.get("moving_damage",0))
+			if directions.size() == 3:
+				bullet.damage *= 0.65
+			if rng.randf() < float(source.traits.get("crit_chance",0)):
+				bullet.damage *= 1.5+float(source.traits.get("crit_power",0))
+		bullet.speed = float(GameData.ENEMIES[source.kind].get("projectile_speed", 135.0)) if hostile else 550.0*(1.0+float(source.traits.get("projectile_bonus",0)))
 		bullet.life = 5.5 if hostile else 1.25
 		bullet.remaining_distance = INF if hostile else GameData.PLAYER_SHOT_RANGE
 		bullet.position = source.global_position + direction*(source.radius+12)
@@ -322,7 +342,7 @@ func nearest_enemy(point: Vector2, detection: float) -> Node2D:
 	return target
 
 func wave_interval() -> float:
-	return maxf(float(GameData.WAVES["minimum_interval"]), float(GameData.WAVES["interval"]) - run_time / float(GameData.WAVES["ramp_seconds"]))
+	return (0.8 if run_protocol == "swarm" else 1.0) * maxf(float(GameData.WAVES["minimum_interval"]), float(GameData.WAVES["interval"]) - run_time / float(GameData.WAVES["ramp_seconds"]))
 
 func wave_size() -> int:
 	return mini(int(GameData.WAVES["maximum_size"]), int(GameData.WAVES["initial_size"]) + int(run_time / float(GameData.WAVES["size_step_seconds"])))
@@ -402,6 +422,9 @@ func spawn_enemy(kind: String, point: Vector2) -> BioActor:
 	if mission_id==1:
 		enemy.hp *= 1.3
 		enemy.max_hp *= 1.3
+	if run_protocol == "predator" and mode == "mission":
+		enemy.hp *= 1.25
+		enemy.max_hp *= 1.25
 	if kind == "guardian" and mode == "mission":
 		Audio.set_context("boss")
 	return enemy
@@ -557,7 +580,7 @@ func runtime_test() -> void:
 	ui.close()
 	await get_tree().physics_frame
 	if world.floor_map.get_used_cells().size()<500: failures+=1
-	if world.organs.size()!=5: failures+=1
+	if world.organs.size()!=8: failures+=1
 	if not player.anim is AnimatedSprite2D: failures+=1
 	if not world.walls.tile_set.get_physics_layers_count()>0: failures+=1
 	var start := player.position
