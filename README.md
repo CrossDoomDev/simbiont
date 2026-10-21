@@ -72,6 +72,7 @@ python -m http.server 8080 --directory build/web --bind 127.0.0.1
 - В лесу простые опухоли выпускают стаи, вторая уничтоженная — одного стража. В Багровой низине каждая опухоль выпускает босса. Страж быстрее преследует носителя, совершает рывки и выпускает частые веерные залпы.
 - Обычные волны выходят из каменных пещер по краям обеих карт: по три входа на каждой стене. Враг выходит из темноты по свободному проходу, затем начинает преследование. Произвольных точек появления возле игрока больше нет; стаи из опухолей и босс сохраняют свой источник.
 - Органический интерфейс: сгенерированные хитиновые панели, кнопки, живой фон главного меню, сосудистая карта и единая тема HUD, улучшений, настроек и сенсорных стиков. Девять растягиваемых частей сохраняют углы рамок. Окно от 640×360: HUD привязан к краям, карточки перестраиваются, длинные меню прокручиваются, заголовок и закрытие остаются на месте. При смене размеров удерживаемый сенсорный жест сбрасывается.
+- Шрифты с кириллицей: Russo One для заголовков, Exo 2 для текста и кнопок. Буквы увеличены на 2–3 пикселя; игровые значки используют встроенный резерв DejaVu Sans. [Источники и лицензии](assets/fonts/README.md).
 - Возврат после цели через меню с затемнением и однократным зачислением добычи. После смерти сохраняется половина каждого ресурса вылазки с округлением вниз; прежний склад не теряется.
 - Локальный профиль, резервная копия, проверка полей сохранения, история вылазок, настройки музыки/эффектов/управления и сброс с подтверждением.
 - Три оригинальные музыкальные петли: корабельная тема, боевой трек миссии и отдельная ускоренная тема стража; корабельный эмбиент и короткие игровые звуки собственного синтеза. В настройках показана громкость в процентах; ноль отключает музыку.
@@ -128,6 +129,7 @@ $godot = powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\launch.
 & $godot --headless --path . --script res://tests/test_ship.gd
 & $godot --headless --path . --script res://tests/test_combat.gd
 & $godot --headless --path . --script res://tests/test_caves.gd
+& $godot --headless --path . --script res://tests/test_fonts.gd
 & $godot --headless --path . --script res://tests/test_ui_layout.gd
 & $godot --headless --path . --script res://tests/test_audio.gd -- --audio-test
 & $godot --headless --path . -- --runtime-test
@@ -135,7 +137,7 @@ $godot = powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\launch.
 & $godot --path . -- --capture
 ```
 
-Проверки и `--capture` используют отдельные тестовые профили. Обычный `symbiont_save.json` не изменяется. Проверяйте код возврата и сообщения `SCRIPT_CHECKS`, `PROGRESS_TESTS`, `GAMEPLAY_TESTS`, `TOUCH_TESTS`, `SHIP_TESTS`, `COMBAT_TESTS`, `CAVE_TESTS`, `UI_LAYOUT_TESTS`, `AUDIO_TESTS`, `RUNTIME_TESTS`, `SCREENSHOTS_OK`, а также ошибки в журнале. Звуковой тест захватывает фактический PCM через `AudioServer`; флаг `--record-audio` после `--audio-test` сохраняет записи в `artifacts/audio/`.
+Проверки и `--capture` используют отдельные тестовые профили. Обычный `symbiont_save.json` не изменяется. Проверяйте код возврата и сообщения `SCRIPT_CHECKS`, `FONT_TESTS`, `PROGRESS_TESTS`, `GAMEPLAY_TESTS`, `TOUCH_TESTS`, `SHIP_TESTS`, `COMBAT_TESTS`, `CAVE_TESTS`, `UI_LAYOUT_TESTS`, `AUDIO_TESTS`, `RUNTIME_TESTS`, `SCREENSHOTS_OK`, а также ошибки в журнале. Звуковой тест захватывает фактический PCM через `AudioServer`; флаг `--record-audio` после `--audio-test` сохраняет записи в `artifacts/audio/`.
 
 Исходник пещеры и запрос генерации сохранены в `assets/source/cave-entrance-generated.png` и `assets/art/cave_manifest.json`. Сборка изображения: `python tools/build_cave_art.py`; пересборка только двух карт с редактируемыми входами и маркерами выхода: `godot --headless --path . --script res://tools/bake_scenes.gd -- --missions-only`. Снимки четырёх сторон: `godot --path . --audio-driver Dummy --script res://tools/capture_caves.gd` при наличии графического контекста.
 

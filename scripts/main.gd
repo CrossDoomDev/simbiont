@@ -478,7 +478,7 @@ func float_text(point: Vector2, value: String, color: Color) -> void:
 	label.position = point-Vector2(15,15)
 	label.z_index = 8
 	label.add_theme_font_override("font",load("res://assets/fonts/semibold.tres"))
-	label.add_theme_font_size_override("font_size",17)
+	label.add_theme_font_size_override("font_size",20)
 	label.add_theme_color_override("font_color",color)
 	label.add_theme_color_override("font_shadow_color",Color.BLACK)
 	label.add_theme_constant_override("shadow_outline_size",4)

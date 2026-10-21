@@ -195,7 +195,7 @@ func _make_organ(id: String, label: String, pos: Vector2, index: int, color: Col
 	title.size = Vector2(320,30)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_override("font",load("res://assets/fonts/regular.tres"))
-	title.add_theme_font_size_override("font_size",16)
+	title.add_theme_font_size_override("font_size",18)
 	title.modulate = color.lightened(0.3)
 	organ.add_child(title)
 	# Native AnimationPlayer: editable scale and modulate tracks.

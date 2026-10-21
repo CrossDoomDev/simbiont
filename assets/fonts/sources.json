@@ -1,0 +1,54 @@
+{
+  "repository": "https://github.com/google/fonts",
+  "revision": "47d54ca1ebb14fd864695f1d39dc734f39017c33",
+  "fonts": [
+    {
+      "file": "Exo2.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/exo2/Exo2%5Bwght%5D.ttf",
+      "sha256": "205a448676a2586f9c57c25f3d5c58ca8db7e6cf5edf7506783a010c6fe2bfb5"
+    },
+    {
+      "file": "RussoOne-Regular.ttf",
+      "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/russoone/RussoOne-Regular.ttf",
+      "sha256": "bc0abcc660bd8b7ad3000ecb2898a27c58a29a50f7ec81652fa12e75148d09df"
+    },
+    {
+      "file": "licenses/Exo2-OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/exo2/OFL.txt",
+      "sha256": "7f95a8eeecc6904ffc81cd10cc8ebc7fcee72a67922924bf45f02dff03b88127"
+    },
+    {
+      "file": "licenses/RussoOne-OFL.txt",
+      "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/russoone/OFL.txt",
+      "sha256": "3ac1301549523d9861fedca12871f24e575fbd26d520632fc00ba849b471d275"
+    },
+    {
+      "file": "metadata/Exo2.pb",
+      "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/exo2/METADATA.pb",
+      "sha256": "465b6e658106342dab756a190234bb03d1d7d3bdcb21e68b6d74f9807a781b43"
+    },
+    {
+      "file": "metadata/RussoOne.pb",
+      "url": "https://raw.githubusercontent.com/google/fonts/47d54ca1ebb14fd864695f1d39dc734f39017c33/ofl/russoone/METADATA.pb",
+      "sha256": "5a78f574cb664eae7b85a87402a2d73739a89ce383eb21dc8512444e3fb51a57"
+    },
+    {
+      "file": "DejaVuSans.ttf",
+      "url": "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.tar.bz2",
+      "archive_member": "dejavu-fonts-ttf-2.37/ttf/DejaVuSans.ttf",
+      "sha256": "7da195a74c55bef988d0d48f9508bd5d849425c1770dba5d7bfc6ce9ed848954"
+    },
+    {
+      "file": "licenses/DejaVu-LICENSE.txt",
+      "url": "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.tar.bz2",
+      "archive_member": "dejavu-fonts-ttf-2.37/LICENSE",
+      "sha256": "7a083b136e64d064794c3419751e5c7dd10d2f64c108fe5ba161eae5e5958a93"
+    }
+  ],
+  "archives": [
+    {
+      "url": "https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2_37/dejavu-fonts-ttf-2.37.tar.bz2",
+      "sha256": "fa9ca4d13871dd122f61258a80d01751d603b4d3ee14095d65453b4e846e17d7"
+    }
+  ]
+}

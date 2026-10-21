@@ -39,6 +39,7 @@ var last_layout_size := Vector2.ZERO
 var last_touch_layout := false
 var regular: Font = preload("res://assets/fonts/regular.tres")
 var bold: Font = preload("res://assets/fonts/semibold.tres")
+var display: Font = preload("res://assets/fonts/display.tres")
 
 func _ready() -> void:
 	layer = 10
@@ -52,7 +53,7 @@ func _ready() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var theme := Theme.new()
 	theme.default_font = regular
-	theme.default_font_size = 18
+	theme.default_font_size = 20
 	theme.set_color("font_color","Label",TEXT)
 	BioSkin.apply(theme)
 	root.theme = theme
@@ -73,10 +74,10 @@ func _ready() -> void:
 func label(value: String, font_size: int = 18, color: Color = TEXT) -> Label:
 	var l := Label.new()
 	l.text = value
-	l.add_theme_font_size_override("font_size",font_size)
+	l.add_theme_font_size_override("font_size",font_size + (3 if font_size >= 30 else 2))
 	l.add_theme_color_override("font_color",color)
-	if font_size >= 25:
-		l.add_theme_font_override("font",bold)
+	if font_size >= 21:
+		l.add_theme_font_override("font",display)
 	return l
 
 func paragraph(value: String, font_size: int = 18, color: Color = MUTED) -> Label:
@@ -92,7 +93,7 @@ func button(value: String, callback: Callable, primary: bool = false) -> Button:
 	var b := Button.new()
 	b.text = value
 	b.clip_text = true
-	b.custom_minimum_size = Vector2(minf(320, regular.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,17).x + 52),54)
+	b.custom_minimum_size = Vector2(minf(320, bold.get_string_size(value,HORIZONTAL_ALIGNMENT_LEFT,-1,19).x + 52),54)
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	b.add_theme_stylebox_override("normal", BioSkin.button(Color(1.16, 1.03, 1.2) if primary else Color.WHITE))
 	if value == "×":
@@ -102,7 +103,8 @@ func button(value: String, callback: Callable, primary: bool = false) -> Button:
 			close_style.content_margin_left = 12
 			close_style.content_margin_right = 12
 			b.add_theme_stylebox_override(state,close_style)
-	b.add_theme_font_size_override("font_size",17)
+	b.add_theme_font_override("font",bold)
+	b.add_theme_font_size_override("font_size",19)
 	b.add_theme_color_override("font_color",TEXT)
 	b.add_theme_color_override("font_disabled_color",Color("837189"))
 	b.pressed.connect(func():
@@ -268,7 +270,7 @@ func _process(delta: float) -> void:
 			objective_label.text = "Стражи   %d / 3" % game.bosses_defeated
 		hint_label.text = "WASD — движение    ·    Мышь — огонь    ·    Esc — меню"
 	else:
-		status_label.text = "ЖИВОЙ КОРАБЛЬ    ·    СЕРДЦЕ %d / IV" % Progress.modules.get("heart",0)
+		status_label.text = ("КОРАБЛЬ · СЕРДЦЕ %d / IV" if root.size.x < 900 else "ЖИВОЙ КОРАБЛЬ    ·    СЕРДЦЕ %d / IV") % Progress.modules.get("heart",0)
 		objective_label.text = "Восстановите связь с кораблём"
 		hint_label.text = "WASD — движение   ·   E — контакт   ·   Esc — меню"
 	interact_button.visible = not game.modal and game.mode == "ship" and is_instance_valid(game.near_organ)
@@ -353,7 +355,7 @@ func open_title() -> void:
 	modal_root.get_child(1).color = Color(0.02,0.005,0.025,0.24)
 	v.add_child(paragraph("О Д Н А   С В Я З Ь .   Д В Е   Ж И З Н И .",13,ACCENT))
 	v.add_child(label("СИМБИОНТ",54))
-	v.add_child(paragraph("Чужая планета. Раненый корабль.\nВы — его последний шанс проснуться.",21,TEXT))
+	v.add_child(paragraph("Чужая планета. Раненый корабль.\nВы — его последний шанс проснуться.",20,TEXT))
 	v.add_child(button("Продолжить связь" if Progress.completed>0 else "Установить связь",func():
 		close()
 		if not Progress.tutorial:

@@ -12,7 +12,7 @@ if grep -Eq '^ERROR:|SCRIPT ERROR:|Parse Error:|Compile Error:' artifacts/ci/imp
     exit 1
 fi
 
-for test_name in check_scripts test_progress test_gameplay test_touch test_ship test_combat test_caves test_ui_layout test_audio; do
+for test_name in check_scripts test_fonts test_progress test_gameplay test_touch test_ship test_combat test_caves test_ui_layout test_audio; do
     extra_args=()
     if [[ "$test_name" == test_audio ]]; then
         extra_args=(-- --audio-test)
@@ -23,6 +23,7 @@ for test_name in check_scripts test_progress test_gameplay test_touch test_ship 
     fi
     case "$test_name" in
         check_scripts) marker='SCRIPT_CHECKS'; unit='files' ;;
+        test_fonts) marker='FONT_TESTS'; unit='checks' ;;
         test_progress) marker='PROGRESS_TESTS'; unit='checks' ;;
         test_gameplay) marker='GAMEPLAY_TESTS'; unit='checks' ;;
         test_touch) marker='TOUCH_TESTS'; unit='checks' ;;

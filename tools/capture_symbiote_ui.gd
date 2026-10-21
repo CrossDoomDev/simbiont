@@ -11,6 +11,8 @@ func _settle() -> void:
 		await process_frame
 
 func _capture(name: String) -> void:
+	if "--fonts" in OS.get_cmdline_user_args():
+		name = name.replace("22_", "23_")
 	await _settle()
 	await RenderingServer.frame_post_draw
 	var result := root.get_texture().get_image().save_png("res://artifacts/screenshots/" + name + ".png")
