@@ -10,8 +10,14 @@
   "style": "Dark detailed pixel-art, black burgundy living chitin, muted olive survivor armor, amber visor, cyan and purple bioluminescence. Orthographic top-down game assets. No physical screens.",
   "sheets": {
     "nest.png": {
-      "size": [128, 128],
-      "cell": [128, 128],
+      "size": [
+        128,
+        128
+      ],
+      "cell": [
+        128,
+        128
+      ],
       "notes": "Single separate overhead corrupted organic nest, brilliant red core, black chitin and crimson tendrils."
     },
     "hero.png": {
@@ -156,7 +162,10 @@
       "generator": "OpenAI built-in image_gen, focused sprite edit, transparent background",
       "prompt": "Create one matching isolated complementary SOUTH-facing walking frame using the original atlas top-row first/second characters as design/palette/proportion references. Preserve olive-black survivor armor, amber visor, cyan chest light and dark-purple symbiote. Anatomical RIGHT is VIEWER LEFT: keep the thick purple cannon arm there and the slender human arm on viewer-right. Never mirror the torso. Viewer-right human leg steps forward/down, viewer-left leg back/up. Preserve the detailed shaded retro pixel-art style, full centered figure, transparent margins, no floor, labels or redesign. The original third top-row cell has the wrong arm and must not be copied. tools/assemble_art.py replaces only that cell; all other source frames remain unchanged."
     },
-    {"asset": "nest", "prompt": "Use case: stylized-concept. Asset type: single production 2D pixel-art enemy NEST sprite with true transparent background, intended to become a 128x128 game sprite. An evil corrupted organic alien nest viewed STRICTLY STRAIGHT DOWN from overhead, orthographic flat top-down video-game projection, not an isometric view, not a perspective illustration. Circular irregular radial mound of blue-black and burgundy chitin plates, twisted red-black glossy fleshy roots curling outward on every side, a cluster of three smaller dark crimson egg sacs and a large intensely glowing bright RED heart core in the center with tiny hot orange fissures. Jagged black bone spines and curved rib-like claws surround the organic core. Dark detailed mature retro pixel art, sharp discrete pixel clusters, rich handcrafted shading, crimson glow limited inside the sprite silhouette, thin amber edge highlights, strongly readable sinister silhouette matching a dark biomechanical alien forest survival game. The nest is low lying on the ground seen from straight overhead, radial footprint, not an upright heart and not a building. Whole nest fits a square with generous 10% transparent margin on all sides. No scene, no floor, no pedestal, no ground shadow, no UI, no labels, no text, no frame or grid. Beautifully detailed clean transparent cutout game asset."},
+    {
+      "asset": "nest",
+      "prompt": "Use case: stylized-concept. Asset type: single production 2D pixel-art enemy NEST sprite with true transparent background, intended to become a 128x128 game sprite. An evil corrupted organic alien nest viewed STRICTLY STRAIGHT DOWN from overhead, orthographic flat top-down video-game projection, not an isometric view, not a perspective illustration. Circular irregular radial mound of blue-black and burgundy chitin plates, twisted red-black glossy fleshy roots curling outward on every side, a cluster of three smaller dark crimson egg sacs and a large intensely glowing bright RED heart core in the center with tiny hot orange fissures. Jagged black bone spines and curved rib-like claws surround the organic core. Dark detailed mature retro pixel art, sharp discrete pixel clusters, rich handcrafted shading, crimson glow limited inside the sprite silhouette, thin amber edge highlights, strongly readable sinister silhouette matching a dark biomechanical alien forest survival game. The nest is low lying on the ground seen from straight overhead, radial footprint, not an upright heart and not a building. Whole nest fits a square with generous 10% transparent margin on all sides. No scene, no floor, no pedestal, no ground shadow, no UI, no labels, no text, no frame or grid. Beautifully detailed clean transparent cutout game asset."
+    },
     {
       "asset": "hero",
       "prompt": "Use case: stylized-concept. Asset type: production pixel-art CHARACTER SPRITESHEET for a dark top-down 2D Godot game. Create one transparent sprite sheet, a strict 4 columns by 4 rows grid of SIXTEEN same-character animation frames, cells evenly sized and all characters centered with generous transparent space, no grid lines, no text. Every frame is a small sharply pixelled 64x64-style hand-painted game sprite (not high resolution painting), olive-black astronaut survivor bonded to glossy purple-black organic symbiote armor, amber visor, cyan light at chest, violet tendrils and right arm grown into an organic violet biopulse cannon. Mood closely resembles dark detailed retro pixel-art alien forest action games: richly shaded charcoal, muted olive armor, tiny golden edge lights, purple fleshy highlights. Strict orthographic overhead 2D game projection, four cardinal directions, NO isometric angle and no dramatic camera. Row1 facing SOUTH / towards bottom; Row2 facing WEST / left; Row3 facing EAST / right; Row4 facing NORTH / away towards top. Columns: 1 neutral idle feet together, 2 walk left foot forward, 3 walk right foot forward, 4 attack arm raised firing one small magenta-white organic muzzle spark. The head/body must stay at identical scale throughout. Small clear feet, readable silhouette, whole character visible in every cell. Body occupies around 65 percent height of each cell. Genuine transparent background. No pedestal, no ground, no floor, no UI, no captions, no drop shadows extending beyond character. Deliver one square sheet of 16 individual separated sprites."
@@ -180,7 +189,8 @@
     "assets/source/enemies-generated.png",
     "assets/source/organs-generated.png",
     "assets/source/props-generated.png",
-    "assets/source/hero-down-walk-generated.png"
+    "assets/source/hero-down-walk-generated.png",
+    "assets/source/hero-down-attack-generated.png"
   ],
   "build": [
     "C:/Python/python.exe tools/build_tile_art.py",
@@ -189,5 +199,13 @@
   ],
   "limitations": [
     "Screenshot fidelity must be checked from the live Godot level. contact_sheet.png is only an asset inspection sheet."
+  ],
+  "additional_generations": [
+    {
+      "asset": "hero south attack replacement",
+      "source": "assets/source/hero-down-attack-generated.png",
+      "reference": "assets/source/hero-down-walk-generated.png",
+      "prompt": "Same pixel-art host facing south, anatomical right purple cannon screen-left firing downward with a compact magenta-white muzzle flash. Braced attack pose, olive armor, amber visor, cyan chest, whole body on transparent background, readable at 64x64."
+    }
   ]
 }

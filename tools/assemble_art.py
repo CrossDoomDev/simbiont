@@ -105,10 +105,14 @@ def main():
             box=attack.getchannel("A").point(lambda a:255 if a>36 else 0).getbbox()
             cells[row][3]=attack.crop(box)
         # The generated left attack looked right. Reuse the correct right-facing
-        # pose mirrored; retain the front-facing sprite for down attacks because
-        # Godot renders the biopulse flash and projectile in the actual aim direction.
+        # pose mirrored. South has its own firing source with the weapon on the
+        # anatomical right (screen-left), rather than a duplicate idle sprite.
         cells[1][3]=ImageOps.mirror(cells[2][3])
-        cells[0][3]=cells[0][0].copy()
+        attack_down = clean_detached(Image.open(SRC / "hero-down-attack-generated.png").convert("RGBA"))
+        attack_box = attack_down.getchannel("A").point(lambda a:255 if a>36 else 0).getbbox()
+        if not attack_box:
+            raise ValueError("South-attack source has no visible character")
+        cells[0][3] = attack_down.crop(attack_box)
         # The original generated south walk2 swaps the human and symbiote arms.
         # Use a dedicated corrected source pose; never reflect the full host to
         # animate a step, since its anatomical right arm is deliberately unique.

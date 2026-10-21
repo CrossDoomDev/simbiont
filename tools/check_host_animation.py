@@ -43,6 +43,14 @@ def main() -> None:
             frames_checked += 1
         assert different(south[1], south[2]), (name, "identical south gait frames")
         assert different(ImageOps.mirror(south[1]), south[2]), (name, "mirrored south gait frame")
+        assert different(south[0], south[3]), (name, "south attack duplicates idle")
+        # A firing pose needs a bright magenta muzzle burst below the right
+        # forearm, not just differently placed feet or a runtime projectile.
+        def muzzle_pixels(cell: Image.Image) -> int:
+            return sum(1 for y in range(32, 58) for x in range(4, 32)
+                       if (lambda p: p[3] > 100 and p[0] > 180 and p[2] > 150
+                           and p[1] < p[0] * 0.85)(cell.getpixel((x, y))))
+        assert muzzle_pixels(south[3]) >= muzzle_pixels(south[0]) + 8, (name, "south attack has no muzzle flash")
         print(name, "south arm left/right:", [arm_pixels(frame) for frame in south])
     print(f"HOST_ANIMATION_OK: {frames_checked} anatomical-arm frames; two distinct unmirrored south gait poses")
 
