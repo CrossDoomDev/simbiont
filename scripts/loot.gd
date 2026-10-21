@@ -26,8 +26,6 @@ func _physics_process(delta: float) -> void:
 	drift = drift.move_toward(Vector2.ZERO, 100 * delta)
 	var distance: float = global_position.distance_to(game.player.global_position)
 	var pickup: float = float(Progress.player_stats().get("pickup_radius", 65))
-	if game.has_mutation("magnet"):
-		pickup *= 1.8
 	if distance < pickup:
 		global_position = global_position.move_toward(game.player.global_position, delta * (150 + (pickup - distance) * 4))
 		distance = global_position.distance_to(game.player.global_position)

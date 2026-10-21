@@ -156,25 +156,21 @@ func _host_tick(delta: float) -> void:
 		if velocity.length_squared() > 1:
 			aim = velocity.normalized()
 		return
-	if game.has_mutation("speed"):
-		velocity *= 1.18
 	var shoot := manual_fire
 	if manual_aim.length_squared() > 0.1:
 		aim = manual_aim.normalized()
 	elif bool(Progress.settings.get("autofire", true)):
-		var nearest: Node2D = game.nearest_enemy(global_position, detection_radius)
+		var nearest: Node2D = game.nearest_enemy(global_position, minf(detection_radius, GameData.PLAYER_SHOT_RANGE + radius + 12.0))
 		if is_instance_valid(nearest) and not bool(nearest.get("dead")):
 			aim = (nearest.global_position - global_position).normalized()
 			shoot = true
 	if shoot and shot_clock <= 0:
-		shot_clock = attack_interval * float(game.mutation_factor("fire_rate"))
+		shot_clock = attack_interval
 		game.fire(self, aim, false)
 	# Only the portion of this tick after the damage lockout can heal.
 	var healing_delta: float = maxf(0.0, delta - regen_delay_remaining)
 	regen_delay_remaining = maxf(0.0, regen_delay_remaining - delta)
 	var healing_rate: float = permanent_regen
-	if game.has_mutation("regen"):
-		healing_rate += float(GameData.REGEN["mutation_rate"])
 	hp = minf(max_hp, hp + healing_rate * healing_delta)
 
 func _enemy_tick(delta: float) -> void:
@@ -347,8 +343,6 @@ func take_damage(amount: float) -> void:
 	if dead or invulnerable > 0 or not is_finite(amount) or amount <= 0.0:
 		return
 	var dealt := maxf(1.0, amount * (1.0 - clampf(armor, 0.0, 0.75)))
-	if kind == "host" and game.has_mutation("armor"):
-		dealt *= 0.8
 	hp -= dealt
 	game.float_text(global_position + Vector2(0, -30), str(int(ceil(dealt))), Color("fa7a86") if kind == "host" else Color("e9e7ba"))
 	if is_instance_valid(flash):

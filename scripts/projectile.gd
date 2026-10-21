@@ -8,6 +8,7 @@ var damage := 10.0
 var hostile := false
 var life := 1.8
 var previous := Vector2.ZERO
+var remaining_distance: float = INF
 
 func _ready() -> void:
 	direction = direction.normalized()
@@ -17,11 +18,14 @@ func _ready() -> void:
 	BioVisual.add_glow(self, Color(1, 0.2, 0.4, 0.7) if hostile else Color(0.25, 1, 0.7, 0.7), 40)
 
 func _physics_process(delta: float) -> void:
+	if is_queued_for_deletion():
+		return
+	var travel: float = minf(speed * minf(delta, maxf(0.0, life)), remaining_distance)
 	life -= delta
-	if life <= 0:
+	if travel <= 0.0:
 		queue_free()
 		return
-	var finish: Vector2 = global_position + direction * speed * delta
+	var finish: Vector2 = global_position + direction * travel
 	# World=1, host=2, enemies and mission objectives=4.
 	var query: PhysicsRayQueryParameters2D = PhysicsRayQueryParameters2D.create(global_position, finish, 3 if hostile else 5)
 	var collision: Dictionary = get_world_2d().direct_space_state.intersect_ray(query)
@@ -29,12 +33,13 @@ func _physics_process(delta: float) -> void:
 		var target: Node2D = collision["collider"] as Node2D
 		if is_instance_valid(target) and target.has_method("take_damage") and not bool(target.get("dead")):
 			target.take_damage(damage)
-			if not hostile and game.has_mutation("chain") and is_instance_valid(target):
-				game.chain_hit(target, damage * 0.45)
 		game.burst(collision["position"], Color("f56b8b") if hostile else Color("91f0a2"), 4)
 		queue_free()
 		return
 	global_position = finish
+	remaining_distance = maxf(0.0, remaining_distance - travel)
+	if remaining_distance <= 0.0 or life <= 0.0:
+		queue_free()
 	queue_redraw()
 
 func _draw() -> void:

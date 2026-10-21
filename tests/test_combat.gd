@@ -5,15 +5,8 @@ extends SceneTree
 class CombatArena extends Node2D:
 	var mode: String = "mission"
 	var player: Node2D
-	var mutations: Array[String] = []
 	var shots: Array[Vector2] = []
 	var shake: float = 0.0
-
-	func has_mutation(id: String) -> bool:
-		return mutations.has(id)
-
-	func mutation_factor(_id: String) -> float:
-		return 1.0
 
 	func nearest_enemy(_point: Vector2, _distance: float) -> Node2D:
 		return null
@@ -66,17 +59,13 @@ func _regen_checks() -> void:
 	host.hp = 100.0
 	host._host_tick(10.0)
 	check(is_equal_approx(host.hp, 102.5), "ten undamaged seconds restore 2.5 HP with all permanent upgrades")
-	arena.mutations = ["regen"]
-	host.hp = 100.0
-	host._host_tick(10.0)
-	check(is_equal_approx(host.hp, 105.5), "mutation and full permanent upgrades restore only 5.5 HP in ten seconds")
 	host.invulnerable = 0.0
 	host.take_damage(10.0)
 	var hurt_hp: float = host.hp
 	host._host_tick(4.9)
 	check(is_equal_approx(host.hp, hurt_hp), "healing stays disabled throughout the five-second after-hit delay")
 	host._host_tick(0.3)
-	check(is_equal_approx(host.hp, hurt_hp + 0.11), "a frame crossing the delay heals only its undamaged remainder")
+	check(is_equal_approx(host.hp, hurt_hp + 0.05), "a frame crossing the delay heals only its undamaged remainder")
 	for i: int in range(3):
 		host.invulnerable = 0.0
 		host.take_damage(2.0)
@@ -94,7 +83,6 @@ func _regen_checks() -> void:
 	host.dead = false
 	host.hp = host.max_hp
 	host.invulnerable = 0.0
-	arena.mutations.clear()
 
 func _begin_attack(boss: Node2D, sequence: int) -> void:
 	boss.guardian_sequence = sequence
@@ -107,6 +95,7 @@ func _release_windup(boss: Node2D) -> void:
 func _guardian_checks() -> void:
 	var host: Node2D = arena.player
 	var boss: Node2D = _actor("guardian", Vector2(200, 400))
+	check(boss.speed >= 130.0 and boss.enemy_attack_interval <= 1.35, "guardian pursues twice as fast and starts attacks more frequently")
 	host.position = Vector2(500, 400)
 	host.regen_delay_remaining = 0.0
 	host.hp = host.max_hp
@@ -142,7 +131,7 @@ func _guardian_checks() -> void:
 	_begin_attack(boss, 0)
 	_release_windup(boss)
 	boss.set_physics_process(true)
-	await create_timer(0.8).timeout
+	await create_timer(0.5).timeout
 	boss.set_physics_process(false)
 	check(boss.position.x < 310.0, "real wall physics stops the charge before its solid boundary")
 	check(boss.guardian_state == "recovery" and boss.velocity.is_zero_approx(), "a blocked charge enters recovery instead of sliding along the wall")
@@ -171,9 +160,10 @@ func _guardian_checks() -> void:
 	check(boss.guardian_attack == "fan" and arena.shots.is_empty(), "fan attack warns before releasing projectiles")
 	_release_windup(boss)
 	boss._guardian_tick(0.01, host.position - boss.position)
-	check(arena.shots.size() == 5 and absf(arena.shots[0].angle_to(arena.shots[4])) > 0.8, "first fan sends five genuinely distinct projectile directions")
+	check(arena.shots.size() == 7 and absf(arena.shots[0].angle_to(arena.shots[6])) > 1.0, "first fan sends seven genuinely distinct projectile directions")
 	boss._guardian_tick(0.30, host.position - boss.position)
-	check(arena.shots.size() == 10 and boss.guardian_state == "recovery", "normal fan fires two separated bursts then exposes the boss")
+	boss._guardian_tick(0.21, host.position - boss.position)
+	check(arena.shots.size() == 21 and boss.guardian_state == "recovery", "normal fan fires three separated bursts then exposes the boss")
 	# The ground slam has a finite radius and a distinct radial projectile pattern.
 	arena.shots.clear()
 	host.position = boss.position + Vector2(130, 0)
@@ -183,7 +173,7 @@ func _guardian_checks() -> void:
 	check(boss.guardian_attack == "slam" and boss.guardian_state_time >= 1.0, "ground slam gives the longest visible escape warning")
 	_release_windup(boss)
 	check(is_equal_approx(slam_health - host.hp, 28.0), "remaining in the slam area causes configured burst damage")
-	check(arena.shots.size() == 12 and arena.shots[0].dot(arena.shots[6]) < -0.99, "slam emits a full radial wave rather than another aimed fan")
+	check(arena.shots.size() == 14 and arena.shots[0].dot(arena.shots[7]) < -0.99, "slam emits a full radial wave rather than another aimed fan")
 	host.position = boss.position + Vector2(180, 0)
 	host.invulnerable = 0.0
 	var safe_health: float = host.hp
@@ -216,7 +206,7 @@ func _guardian_checks() -> void:
 	_release_windup(boss)
 	for i: int in range(3):
 		boss._guardian_tick(0.3, host.position - boss.position)
-	check(arena.shots.size() == 10, "crossing half health during fan warning does not add an unannounced third burst")
+	check(arena.shots.size() == 21, "crossing half health during fan warning does not add an unannounced fourth burst")
 	arena.shots.clear()
 	boss.hp = boss.max_hp * 0.75
 	_begin_attack(boss, 1)
@@ -225,20 +215,20 @@ func _guardian_checks() -> void:
 	boss.hp = boss.max_hp * 0.5
 	for i: int in range(2):
 		boss._guardian_tick(0.3, host.position - boss.position)
-	check(arena.shots.size() == 10, "crossing half health mid-volley preserves the announced two-burst pattern")
+	check(arena.shots.size() == 21, "crossing half health mid-volley preserves the announced three-burst pattern")
 	# The second phase is more aggressive while retaining a dodgeable windup.
 	boss.hp = boss.max_hp * 0.5
 	_begin_attack(boss, 0)
 	check(boss.guardian_attack_enraged and boss.guardian_dash_speed > warned_dash_speed, "a new attack adopts the second phase only after the previous warning has finished")
-	check(boss.guardian_enraged() and boss.guardian_state_time >= 0.70 and boss.guardian_state_time < 0.90, "half health triggers faster but still readable second-phase warnings")
+	check(boss.guardian_enraged() and boss.guardian_state_time >= 0.70 and boss.guardian_state_time < 0.85, "half health triggers faster but still readable second-phase warnings")
 	_release_windup(boss)
 	check(boss.velocity.length() > 470.0, "second phase increases charge pressure")
 	arena.shots.clear()
 	_begin_attack(boss, 1)
 	_release_windup(boss)
-	for i: int in range(3):
+	for i: int in range(4):
 		boss._guardian_tick(0.3, host.position - boss.position)
-	check(arena.shots.size() == 15 and boss.guardian_state == "recovery", "second phase adds a third fan burst")
+	check(arena.shots.size() == 28 and boss.guardian_state == "recovery", "second phase adds a fourth fan burst")
 	# Use actual process disabling, as the game's pause applies to the whole world.
 	_begin_attack(boss, 0)
 	boss.set_physics_process(true)

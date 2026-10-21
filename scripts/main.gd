@@ -15,10 +15,8 @@ var run_id := ""
 var nodes_destroyed := 0
 var boss_spawned := false
 var boss_defeated := false
-var mutations: Array[String] = []
-var fragments := 0
-var next_mutation := 24
-var spawn_clock := 2.0
+var spawn_clock := 1.0
+var pending_nest_enemies: Array[Dictionary] = []
 var shake := 0.0
 var fade_layer: CanvasLayer
 var fade_rect: ColorRect
@@ -54,6 +52,7 @@ func _setup_world(context: String) -> void:
 		remove_child(world)
 		world.queue_free()
 	near_organ = null
+	pending_nest_enemies.clear()
 	mode = context
 	var scene_path := "res://scenes/hub.tscn" if context == "ship" else ("res://scenes/forest.tscn" if mission_id == 0 else "res://scenes/swamp.tscn")
 	world = load(scene_path).instantiate() as BioWorld
@@ -89,7 +88,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.physical_keycode == KEY_ESCAPE:
-			if ui.page in ["mutation","death"]:
+			if ui.page == "death":
 				return
 			if modal:
 				ui.close()
@@ -132,12 +131,11 @@ func _physics_process(delta: float) -> void:
 		run_time += delta
 		spawn_clock -= delta
 		if spawn_clock <= 0:
-			spawn_clock = maxf(0.85,3.1-run_time/100)
-			var amount := mini(5,1+int(run_time/70))
+			spawn_clock = wave_interval()
+			var amount := wave_size()
 			for i in amount:
 				_spawn_wave_enemy()
-		if fragments>=next_mutation and mutations.size()<GameData.MUTATIONS.size() and not modal:
-			_offer_mutation()
+		_release_nest_enemies()
 
 func set_modal(value: bool) -> void:
 	modal = value
@@ -186,10 +184,7 @@ func start_mission(id: int) -> void:
 	nodes_destroyed = 0
 	boss_spawned = false
 	boss_defeated = false
-	mutations.clear()
-	fragments = 0
-	next_mutation = 24
-	spawn_clock = 2.5
+	spawn_clock = 1.0
 	run_id = "%s_%s" % [Time.get_unix_time_from_system(),rng.randi()]
 	for i in int(GameData.MISSIONS[id]["nodes"]):
 		var nest := BioNest.new()
@@ -199,7 +194,7 @@ func start_mission(id: int) -> void:
 		nest.max_hp = float(GameData.MISSIONS[id]["node_hp"])
 		nest.hp = nest.max_hp
 		world.entities.add_child(nest)
-	for i in 9:
+	for i in int(GameData.WAVES["initial"]):
 		_spawn_wave_enemy()
 	set_modal(false)
 	await _fade(0)
@@ -234,7 +229,6 @@ func finish_mission(success: bool) -> void:
 	await _fade(1)
 	_setup_world("ship")
 	run_loot = [0,0,0,0]
-	mutations.clear()
 	set_modal(true)
 	await _fade(0)
 	transitioning = false
@@ -245,7 +239,6 @@ func return_to_fresh_ship() -> void:
 	ui.clear_overlay()
 	_setup_world("ship")
 	run_loot = [0,0,0,0]
-	mutations.clear()
 	ui.open_title()
 
 func update_ship() -> void:
@@ -263,11 +256,11 @@ func update_ship() -> void:
 		player.apply_stats()
 
 func fire(source: BioActor, aim: Vector2, hostile: bool) -> void:
-	if get_tree().get_nodes_in_group("projectiles").size()>=GameData.MAX_PROJECTILES:
+	# Dense enemy volleys must leave room for the host to keep firing.
+	var limit: int = GameData.MAX_PROJECTILES - 16 if hostile else GameData.MAX_PROJECTILES
+	if get_tree().get_nodes_in_group("projectiles").size() >= limit:
 		return
 	var directions: Array[Vector2] = [aim]
-	if not hostile and has_mutation("multishot"):
-		directions = [aim.rotated(-0.09),aim.rotated(0.09)]
 	for direction in directions:
 		var bullet := BioProjectile.new()
 		bullet.game = self
@@ -276,6 +269,7 @@ func fire(source: BioActor, aim: Vector2, hostile: bool) -> void:
 		bullet.damage = source.damage
 		bullet.speed = float(GameData.ENEMIES[source.kind].get("projectile_speed", 135.0)) if hostile else 550.0
 		bullet.life = 5.5 if hostile else 1.25
+		bullet.remaining_distance = INF if hostile else GameData.PLAYER_SHOT_RANGE
 		bullet.position = source.global_position + direction*(source.radius+12)
 		world.entities.add_child(bullet)
 		bullet.add_to_group("projectiles")
@@ -299,12 +293,50 @@ func nearest_enemy(point: Vector2, detection: float) -> Node2D:
 				best = distance
 	return target
 
+func wave_interval() -> float:
+	return maxf(float(GameData.WAVES["minimum_interval"]), float(GameData.WAVES["interval"]) - run_time / float(GameData.WAVES["ramp_seconds"]))
+
+func wave_size() -> int:
+	return mini(int(GameData.WAVES["maximum_size"]), int(GameData.WAVES["initial_size"]) + int(run_time / float(GameData.WAVES["size_step_seconds"])))
+
+func _release_nest_enemies() -> void:
+	# Leave one slot for the unique guardian. Packs wait for room rather than
+	# disappearing when the population cap is reached or spawning inside walls.
+	var population: int = get_tree().get_nodes_in_group("enemies").size()
+	for i: int in mini(12, pending_nest_enemies.size()):
+		if population >= GameData.MAX_ENEMIES - 1:
+			return
+		var entry: Dictionary = pending_nest_enemies[0]
+		var clearance: float = float(GameData.ENEMIES[entry.kind]["radius"]) + 6.0
+		var found := false
+		for attempt: int in 48:
+			var point: Vector2 = Vector2(entry.origin) + Vector2.RIGHT.rotated(rng.randf() * TAU) * rng.randf_range(75.0, 205.0)
+			if point.distance_to(player.position) < clearance + player.radius + 65.0 or not world.is_walkable(point, clearance):
+				continue
+			var occupied := false
+			for enemy: BioActor in get_tree().get_nodes_in_group("enemies"):
+				if not enemy.dead and point.distance_to(enemy.position) < clearance + enemy.radius:
+					occupied = true
+					break
+			if occupied:
+				continue
+			spawn_enemy(str(entry.kind), point)
+			pending_nest_enemies.pop_front()
+			population += 1
+			found = true
+			break
+		if not found:
+			return
+
 func _spawn_wave_enemy() -> void:
-	if get_tree().get_nodes_in_group("enemies").size()>=GameData.MAX_ENEMIES:
+	if get_tree().get_nodes_in_group("enemies").size() >= GameData.MAX_ENEMIES - GameData.WAVE_RESERVE:
 		return
 	for attempt in 16:
 		var direction := Vector2.RIGHT.rotated(rng.randf()*TAU)
-		var point := player.position+direction*rng.randf_range(790,1050)
+		# Enter just outside the actual camera, rather than far away in a circle.
+		var half_view: Vector2 = get_viewport_rect().size / camera.zoom * 0.5
+		var edge: float = minf(half_view.x / maxf(absf(direction.x), 0.001), half_view.y / maxf(absf(direction.y), 0.001))
+		var point := player.position + direction * (edge + rng.randf_range(80.0, 190.0))
 		if not world.is_walkable(point,35):
 			continue
 		var kinds: Array[String] = ["crawler","crawler","shell","ranged"]
@@ -355,7 +387,6 @@ func _drop_loot(point: Vector2, loot: Array) -> void:
 
 func collect(type: int, amount: int) -> void:
 	run_loot[type] += amount
-	fragments += amount
 	Audio.play_sfx("pickup")
 	float_text(player.position+Vector2(0,-38),"+%d" % amount,GameData.RESOURCES[type]["color"])
 
@@ -367,12 +398,21 @@ func nest_destroyed(nest: BioNest) -> void:
 	_drop_loot(nest.position,[12,3,4,0])
 	if nodes_destroyed>=2 and not boss_spawned:
 		boss_spawned = true
-		var position := nest.position+Vector2(170,100)
-		if not world.is_walkable(position,55):
-			position = nest.position
+		var position := nest.position
+		for attempt: int in 64:
+			var point: Vector2 = nest.position + Vector2.RIGHT.rotated(rng.randf() * TAU) * rng.randf_range(70.0, 180.0)
+			if world.is_walkable(point, 55.0) and point.distance_to(player.position) > 120.0:
+				position = point
+				break
 		spawn_enemy("guardian",position)
 		Audio.play_sfx("boss")
-		ui.toast("Искажённый страж услышал разрушение гнезда.")
+		ui.toast("Из опухоли вырвался искажённый страж!")
+	else:
+		var amount: int = int(GameData.WAVES["nest_pack"]) + mission_id * 3 + mini(6, int(run_time / 60.0))
+		for i: int in amount:
+			pending_nest_enemies.append({"origin": nest.position, "kind": ["crawler", "crawler", "shell", "ranged"][i % 4]})
+		_release_nest_enemies()
+		ui.toast("Опухоль лопнула — наружу рвётся стая!")
 	if objective_complete():
 		ui.toast("Цель выполнена. Продолжайте сбор или вернитесь через Esc.")
 	else:
@@ -381,52 +421,6 @@ func nest_destroyed(nest: BioNest) -> void:
 func _host_died(_actor: BioActor) -> void:
 	Audio.play_sfx("death")
 	ui.open_death()
-
-func has_mutation(id: String) -> bool:
-	return mutations.has(id)
-
-func mutation_factor(id: String) -> float:
-	if id == "fire_rate":
-		return 1.0
-	return 1.0
-
-func _offer_mutation() -> void:
-	var available: Array = []
-	for mutation: Dictionary in GameData.MUTATIONS:
-		if not mutations.has(mutation["id"]):
-			available.append(mutation)
-	available.shuffle()
-	ui.open_mutations(available.slice(0,3))
-	next_mutation += 35+mutations.size()*12
-
-func select_mutation(id: String) -> void:
-	if not has_mutation(id):
-		mutations.append(id)
-	Audio.play_sfx("upgrade")
-	ui.close()
-	ui.toast("Адаптация принята. Действует до возвращения.")
-
-func chain_hit(source: Node2D, amount: float) -> void:
-	var best: Node2D
-	var distance := 150.0
-	for target: Node2D in get_tree().get_nodes_in_group("enemies"):
-		if target == source or target.dead:
-			continue
-		var d := source.global_position.distance_to(target.global_position)
-		if d<distance:
-			distance = d
-			best = target
-	if best != null:
-		var line := Line2D.new()
-		line.width = 2
-		line.default_color = Color("9ed9ee")
-		line.points = PackedVector2Array([source.global_position,source.global_position.lerp(best.global_position,0.5)+Vector2(0,-8),best.global_position])
-		world.entities.add_child(line)
-		line.z_index = 6
-		best.take_damage(amount)
-		var tween := create_tween()
-		tween.tween_property(line,"modulate:a",0,0.18)
-		tween.tween_callback(line.queue_free)
 
 func burst(point: Vector2, color: Color, count: int) -> void:
 	if get_tree().get_nodes_in_group("effects").size()>110:
@@ -483,8 +477,8 @@ func capture_screenshots() -> void:
 	await get_tree().create_timer(1.5).timeout
 	await _capture("05_forest_combat")
 	set_modal(true)
-	ui.open_mutations(GameData.MUTATIONS.slice(0,3))
-	await _capture("06_mutation")
+	ui.open_pause()
+	await _capture("06_mission_pause")
 	ui.close()
 	# Capture verified mission completion UI while preserving normal return rules.
 	for nest: BioNest in get_tree().get_nodes_in_group("nests"):
@@ -544,7 +538,7 @@ func runtime_test() -> void:
 	if mode!="ship": failures+=1
 	for i in 4:
 		if Progress.bank[i]!=before[i]+loot_before[i]: failures+=1
-	if not mutations.is_empty(): failures+=1
+	if not pending_nest_enemies.is_empty(): failures+=1
 	ui.close()
 	await start_mission(0)
 	player.take_damage(10000)

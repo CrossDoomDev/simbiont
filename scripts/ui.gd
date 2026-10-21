@@ -278,7 +278,7 @@ func overlay(title: String, subtitle: String = "", width: float = 980) -> VBoxCo
 	var heading := label(title,30)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(heading)
-	if page not in ["title", "mutation", "death"]:
+	if page not in ["title", "death"]:
 		header.add_child(button("×",func(): close()))
 	if subtitle != "":
 		overlay_content.add_child(paragraph(subtitle,16))
@@ -364,7 +364,7 @@ func open_pause() -> void:
 
 func open_finish_confirmation() -> void:
 	page = "confirm_finish"
-	var v := overlay("Вернуться на корабль?", "Собранная добыча будет передана в биохранилище. Временные мутации исчезнут.",650)
+	var v := overlay("Вернуться на корабль?", "Собранная добыча будет передана в биохранилище. На корабле её можно потратить на улучшения.",650)
 	v.add_child(button("Завершить миссию и вернуться",func(): game.finish_mission(true),true))
 	v.add_child(button("Остаться в лесу",func(): close()))
 
@@ -378,6 +378,8 @@ func costs(cost: Array) -> String:
 	return " · ".join(parts)
 
 func open_upgrades(ship: bool = false) -> void:
+	if game.mode != "ship":
+		return
 	page = "modules" if ship else "upgrades"
 	var v := overlay("Пробуждение корабля" if ship else "Анатомия симбионта", "Ресурсы хранилища общие для корабля и носителя. Изменения сохраняются сразу.")
 	var grid := GridContainer.new()
@@ -432,23 +434,6 @@ func open_heart() -> void:
 	var messages: Array[String] = ["«Я помню падение. Помню холод. Принеси мне жизнь снаружи — и мы вспомним дорогу вместе.»","«Сосуды снова несут тепло. Я чувствую лес. Под ним дышит что-то чужое.»","«Связь крепнет. Багровая низина отозвалась. Её ядра помогут мне восстановиться.»","«Мои ткани срастаются. Твой пульс стал частью моего.»","«Я проснулся. Мы остаёмся здесь — но теперь у нас есть будущее.»"]
 	v.add_child(paragraph(messages[clampi(stage,0,4)],23,Color("e6c3a8")))
 	v.add_child(button("Открыть восстановление органов",func(): open_upgrades(true),true))
-
-func open_mutations(choices: Array) -> void:
-	page = "mutation"
-	var v := overlay("Нестабильная адаптация", "Фрагменты перестраивают симбионта. Выберите одну мутацию до конца этой вылазки.")
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation",16)
-	v.add_child(row)
-	for mutation: Dictionary in choices:
-		var card := PanelContainer.new()
-		card.custom_minimum_size = Vector2(292,270)
-		card.add_theme_stylebox_override("panel",style(Color("172730"),mutation["color"]))
-		row.add_child(card)
-		var box := _box(card,18)
-		box.add_child(label("АДАПТАЦИЯ",12,mutation["color"]))
-		box.add_child(paragraph(mutation["name"],24,mutation["color"]))
-		box.add_child(paragraph(mutation["description"],18))
-		box.add_child(button("Принять мутацию",func(): game.select_mutation(mutation["id"]),true))
 
 func open_results(success: bool, loot: Array, elapsed: float) -> void:
 	page = "results"

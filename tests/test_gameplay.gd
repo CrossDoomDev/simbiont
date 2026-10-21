@@ -73,11 +73,6 @@ func _buy_card(name: String) -> bool:
 	matches[0].pressed.emit()
 	return true
 
-func _mutations(ids: Array[String]) -> void:
-	game.mutations.clear()
-	for id: String in ids:
-		game.mutations.append(id)
-
 func _clear(group: String) -> void:
 	for node: Node in get_nodes_in_group(group):
 		node.set_physics_process(false)
@@ -110,6 +105,84 @@ func _extract() -> void:
 		confirms[0].pressed.emit()
 		confirms[0].pressed.emit()
 	check(await _wait_for(func() -> bool: return game.mode == "ship" and game.ui.page == "results" and not game.transitioning), "confirmed extraction reaches ship results")
+
+func _pressure_and_range_checks() -> void:
+	_clear("enemies")
+	_clear("projectiles")
+	await _frames()
+	# Find an unobstructed firing lane so range, rather than scenery, stops shots.
+	var lane := Vector2.ZERO
+	for y: int in range(300, 1600, 120):
+		for x: int in range(300, 1800, 120):
+			var start := Vector2(x, y)
+			var end := start + Vector2(500, 0)
+			if game.world.is_walkable(start, 30) and game.world.is_walkable(end, 30):
+				var ray := PhysicsRayQueryParameters2D.create(start, end, 1)
+				if game.get_world_2d().direct_space_state.intersect_ray(ray).is_empty():
+					lane = start
+					break
+		if lane != Vector2.ZERO:
+			break
+	check(lane != Vector2.ZERO, "a clear lane exists for physical range checks")
+	game.player.position = lane
+	var close_enemy: Node2D = game.spawn_enemy("shell", lane + Vector2(290, 0))
+	close_enemy.set_physics_process(false)
+	await _frames()
+	game.fire(game.player, Vector2.RIGHT, false)
+	await _seconds(0.65)
+	check(close_enemy.hp < close_enemy.max_hp, "a shot still damages a target inside the shorter range")
+	_clear("enemies")
+	_clear("projectiles")
+	await _frames()
+	var far_enemy: Node2D = game.spawn_enemy("shell", lane + Vector2(440, 0))
+	far_enemy.set_physics_process(false)
+	await _frames()
+	game.fire(game.player, Vector2.RIGHT, false)
+	var bullet: Node2D = get_nodes_in_group("projectiles")[0] as Node2D
+	bullet.set_physics_process(false)
+	var muzzle: Vector2 = bullet.position
+	bullet._physics_process(1.0)
+	check(bullet.position.distance_to(muzzle) <= 343.76 and bullet.is_queued_for_deletion(), "a long frame cannot carry a player shot past half its former 687.5px range")
+	check(far_enemy.hp == far_enemy.max_hp, "a target beyond range receives no damage even during a long frame")
+	_clear("enemies")
+	await _frames()
+	game.rng.seed = 4137
+	game.player.position = Vector2(1280, 960)
+	game.run_time = 0.0
+	game.spawn_clock = 0.0
+	game._physics_process(0.0)
+	var early_count: int = get_nodes_in_group("enemies").size()
+	var early_interval: float = game.spawn_clock
+	check(early_count >= 3, "an early wave brings a group instead of one isolated enemy")
+	_clear("enemies")
+	await _frames()
+	game.run_time = 210.0
+	game.spawn_clock = 0.0
+	game._physics_process(0.0)
+	check(get_nodes_in_group("enemies").size() > early_count and game.spawn_clock < early_interval, "late waves produce more enemies at shorter intervals")
+	check(game.wave_interval() >= 0.65 and game.wave_size() <= 10, "wave escalation has bounded density and timing")
+	_clear("enemies")
+	await _frames()
+	# Reserve slots keep ordinary waves from consuming the nest population budget.
+	for i: int in GameData.MAX_ENEMIES - 1:
+		var enemy: Node2D = game.spawn_enemy("crawler", Vector2(2100, 1500))
+		enemy.set_physics_process(false)
+	var capped_count: int = get_nodes_in_group("enemies").size()
+	game._spawn_wave_enemy()
+	check(get_nodes_in_group("enemies").size() == capped_count, "ordinary waves respect reserved pack and boss slots")
+	game.pending_nest_enemies.append({"origin": game.player.position, "kind": "crawler"})
+	game._release_nest_enemies()
+	check(game.pending_nest_enemies.size() == 1, "a full population queues the nest enemy instead of losing it")
+	get_nodes_in_group("enemies")[0].queue_free()
+	await _frames()
+	game._release_nest_enemies()
+	check(game.pending_nest_enemies.is_empty() and get_nodes_in_group("enemies").size() == capped_count, "a queued nest enemy spawns as soon as room becomes available")
+	_clear("enemies")
+	_clear("projectiles")
+	await _frames()
+	game.run_time = 0.0
+	game.spawn_clock = 1.0
+	game.player.position = game.world.spawn_point
 
 func _run() -> void:
 	progress = root.get_node("Progress")
@@ -199,7 +272,6 @@ func _run() -> void:
 	await _seconds(0.35)
 	check(game.run_loot[0] >= 3, "magnetic pickup transfers physical biomass into run inventory")
 	_clear("loot")
-	game.fragments = 0
 	game.player.position = game.world.spawn_point
 	var shooter: Node2D = game.spawn_enemy("ranged", game.player.position + Vector2(160, 0))
 	shooter.set_physics_process(false)
@@ -212,86 +284,18 @@ func _run() -> void:
 	_clear("enemies")
 	_clear("projectiles")
 	await _frames()
-	# Exercise mutation formulas and actual UI selection.
-	_mutations([])
-	game.player.move_input = Vector2.RIGHT
-	game.player._host_tick(0.016)
-	var normal_speed: float = game.player.velocity.length()
-	_mutations(["speed"])
-	game.player._host_tick(0.016)
-	check(is_equal_approx(game.player.velocity.length(), normal_speed * 1.18), "speed mutation changes movement by 18 percent")
-	game.player.move_input = Vector2.ZERO
-	game.player.velocity = Vector2.ZERO
-	_mutations([])
-	game.player.hp = 100.0
-	game.player.invulnerable = 0.0
-	game.player.take_damage(20.0)
-	check(is_equal_approx(game.player.hp, 80.0), "base incoming damage is exact")
-	_mutations(["armor"])
-	game.player.hp = 100.0
-	game.player.invulnerable = 0.0
-	game.player.take_damage(20.0)
-	check(is_equal_approx(game.player.hp, 84.0), "armor mutation reduces damage by 20 percent")
-	game.player.take_damage(20.0)
-	check(is_equal_approx(game.player.hp, 84.0), "hit grace period prevents same-frame repeat damage")
-	_mutations(["regen"])
-	game.player.hp = 60.0
-	game.player._host_tick(2.0)
-	check(is_equal_approx(game.player.hp, 60.0), "recent damage blocks regeneration during combat")
-	game.player._host_tick(float(GameData.REGEN["damage_delay"]))
-	check(game.player.hp > 60.0 and game.player.hp < 61.0, "regeneration resumes slowly after the no-damage delay")
-	_mutations(["chain"])
-	var chain_first: Node2D = game.spawn_enemy("crawler", game.player.position + Vector2(130, 0))
-	var chain_second: Node2D = game.spawn_enemy("crawler", game.player.position + Vector2(230, 0))
-	chain_first.set_physics_process(false)
-	chain_second.set_physics_process(false)
-	await _frames()
-	game.fire(game.player, Vector2.RIGHT, false)
-	await _seconds(0.35)
-	check(chain_first.hp < chain_first.max_hp and chain_second.hp < chain_second.max_hp, "real chain bioimpulse damages primary and neighbouring enemy")
-	_clear("enemies")
-	_clear("projectiles")
-	await _frames()
-	_mutations(["multishot"])
-	game.fire(game.player, Vector2.RIGHT, false)
-	var split_bullets: Array[Node] = get_nodes_in_group("projectiles")
-	check(split_bullets.size() == 2, "multishot creates exactly two real projectiles")
-	if split_bullets.size() == 2:
-		var first_direction: Vector2 = split_bullets[0].direction
-		var second_direction: Vector2 = split_bullets[1].direction
-		check(absf(first_direction.angle_to(second_direction)) > 0.1, "multishot projectiles form distinct aiming directions")
-	_clear("projectiles")
-	_mutations([])
-	var magnetic_drop: Node2D = load("res://scripts/loot.gd").new() as Node2D
-	magnetic_drop.game = game
-	magnetic_drop.position = game.player.position + Vector2(80, 0)
-	game.world.entities.add_child(magnetic_drop)
-	magnetic_drop.set_physics_process(false)
-	magnetic_drop.drift = Vector2.ZERO
-	magnetic_drop.age = 1.0
-	var outside_normal_pickup: Vector2 = magnetic_drop.position
-	magnetic_drop._physics_process(0.1)
-	check(magnetic_drop.position == outside_normal_pickup, "normal pickup cannot attract resource from 80 pixels")
-	_mutations(["magnet"])
-	magnetic_drop._physics_process(0.1)
-	check(magnetic_drop.position.distance_to(game.player.position) < 80.0, "magnet mutation expands real resource attraction radius")
-	magnetic_drop.queue_free()
-	_mutations([])
-	game.fragments = 24
-	game.next_mutation = 24
+	# Resources cannot interrupt a mission or buy ship upgrades in the field.
+	var before_collect: int = game.run_loot[0]
+	game.collect(0, 200)
 	game.set_physics_process(true)
 	await _frames(3)
-	check(game.ui.page == "mutation" and game.modal, "fragment threshold opens one mutation panel")
-	var choices: Array[Button] = _buttons(game.ui.modal_root, "Принять мутацию")
-	check(choices.size() == 3, "mutation panel offers three distinct choices")
-	var next_threshold: int = game.next_mutation
-	await _frames(3)
-	check(game.next_mutation == next_threshold and _buttons(game.ui.modal_root, "Принять мутацию").size() == 3, "paused mutation panel cannot stack or advance threshold")
-	_click("Принять мутацию")
-	check(game.mutations.size() == 1 and not game.modal, "mutation button applies one choice and resumes")
+	check(game.run_loot[0] == before_collect + 200 and not game.modal and game.ui.page == "", "collecting resources never opens a three-choice upgrade panel")
+	game.ui.open_upgrades(false)
+	check(not game.modal and game.ui.page == "", "host upgrades can only be opened aboard the ship")
+	game.ui.open_upgrades(true)
+	check(not game.modal and game.ui.page == "", "ship restoration cannot be opened in combat")
 	game.set_physics_process(false)
-	game.fragments = 0
-	_mutations([])
+	await _pressure_and_range_checks()
 	# A pause must freeze host, enemy, projectile and elapsed mission time together.
 	var paused_enemy: Node2D = game.spawn_enemy("crawler", game.player.position + Vector2(170, 0))
 	game.fire(paused_enemy, Vector2.UP, true)
@@ -316,7 +320,10 @@ func _run() -> void:
 	await _frames()
 	# Kill real mission objectives and return through both confirmation callbacks.
 	for objective: Node in get_nodes_in_group("nests"):
+		var enemies_before: int = get_nodes_in_group("enemies").size() + game.pending_nest_enemies.size()
 		objective.take_damage(9999.0)
+		var released: int = get_nodes_in_group("enemies").size() + game.pending_nest_enemies.size() - enemies_before
+		check(released == (1 if game.nodes_destroyed == 2 else 9 + game.mission_id * 3), "destroyed nest releases exactly one boss or a full ordinary pack")
 	check(game.nodes_destroyed == 3 and game.objective_complete(), "three destroyed nests complete first mission")
 	check(game.mode == "mission" and game.ui.page == "", "completed objective leaves mission running")
 	check(game.boss_spawned and not game.boss_defeated, "second nest awakens optional first-biome guardian")
@@ -325,7 +332,7 @@ func _run() -> void:
 	var success_before: Array = progress.bank.duplicate()
 	await _extract()
 	check(progress.bank == [success_before[0] + 10, success_before[1] + 4, success_before[2] + 3, success_before[3] + 1], "double return callback credits successful loot exactly once")
-	check(progress.completed == 1 and game.mutations.is_empty(), "success persists completion and clears temporary mutation")
+	check(progress.completed == 1 and game.pending_nest_enemies.is_empty(), "success persists completion and clears pending nest packs")
 	check(not progress.deposit_run([99, 99, 99, 99], true, success_id), "completed run cannot be deposited again")
 	_click("Почувствовать корабль")
 	await _launch()
@@ -354,7 +361,10 @@ func _run() -> void:
 	await _launch(1)
 	check(game.mission_id == 1, "second unlocked map button launches correct biome")
 	for objective: Node in get_nodes_in_group("nests"):
+		var enemies_before: int = get_nodes_in_group("enemies").size() + game.pending_nest_enemies.size()
 		objective.take_damage(9999.0)
+		var released: int = get_nodes_in_group("enemies").size() + game.pending_nest_enemies.size() - enemies_before
+		check(released == (1 if game.nodes_destroyed == 2 else 9 + game.mission_id * 3), "destroyed nest releases exactly one boss or a full ordinary pack")
 	check(game.nodes_destroyed == 3 and not game.objective_complete(), "second biome still requires guardian after three nodes")
 	game.ui.open_pause()
 	unavailable = _buttons(game.ui.modal_root, "Завершить миссию")

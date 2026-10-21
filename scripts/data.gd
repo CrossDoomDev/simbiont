@@ -3,14 +3,17 @@ extends RefCounted
 ## Central balance data. Resource order is always biomass, tissue, enzyme, core.
 
 const DEATH_KEEP_RATIO: float = 0.5
-const MAX_ENEMIES: int = 58
-const MAX_PROJECTILES: int = 140
+const MAX_ENEMIES: int = 112
+const WAVE_RESERVE: int = 24
+const PLAYER_SHOT_RANGE: float = 343.75
+const WAVES: Dictionary = {"initial": 16, "interval": 1.9, "minimum_interval": 0.65, "ramp_seconds": 150.0, "initial_size": 3, "maximum_size": 10, "size_step_seconds": 30.0, "nest_pack": 9}
+const MAX_PROJECTILES: int = 240
 const RESOURCE_LIMIT: int = 999999
-const REGEN: Dictionary = {"upgrade_rate": 0.05, "module_rate": 0.025, "mutation_rate": 0.30, "damage_delay": 5.0}
+const REGEN: Dictionary = {"upgrade_rate": 0.05, "module_rate": 0.025, "damage_delay": 5.0}
 const GUARDIAN_ATTACKS: Dictionary = {
-	"dash": {"windup": 0.90, "speed": 470.0, "duration": 0.68, "damage": 30.0, "recovery": 0.85},
-	"fan": {"windup": 0.80, "projectiles": 5, "spread": 0.48, "bursts": 2, "burst_interval": 0.28, "recovery": 0.65},
-	"slam": {"windup": 1.05, "radius": 142.0, "damage": 28.0, "projectiles": 12, "recovery": 0.95},
+	"dash": {"windup": 0.85, "speed": 620.0, "duration": 0.60, "damage": 30.0, "recovery": 0.55},
+	"fan": {"windup": 0.80, "projectiles": 7, "spread": 0.60, "bursts": 3, "burst_interval": 0.20, "recovery": 0.45},
+	"slam": {"windup": 1.05, "radius": 142.0, "damage": 28.0, "projectiles": 14, "recovery": 0.65},
 	"enrage_threshold": 0.5, "enrage_speed": 1.15, "enrage_cooldown": 0.78, "enrage_windup": 0.85,
 }
 
@@ -25,7 +28,7 @@ const ENEMIES: Dictionary = {
 	"crawler": {"name": "Ползун", "hp": 24.0, "speed": 79.0, "damage": 7.0, "radius": 13.0, "armor": 0.0, "cooldown": 0.9, "loot": [3, 0, 0, 0], "color": Color("c69369")},
 	"shell": {"name": "Панцирник", "hp": 66.0, "speed": 43.0, "damage": 13.0, "radius": 20.0, "armor": 0.22, "cooldown": 1.3, "loot": [2, 2, 0, 0], "color": Color("b67f66")},
 	"ranged": {"name": "Излучатель", "hp": 36.0, "speed": 50.0, "damage": 10.0, "radius": 16.0, "armor": 0.0, "cooldown": 2.3, "range": 250.0, "projectile_speed": 126.0, "telegraph": 0.65, "loot": [1, 0, 2, 0], "color": Color("9dd0b2")},
-	"guardian": {"name": "Искажённый страж", "hp": 520.0, "speed": 62.0, "damage": 22.0, "radius": 37.0, "armor": 0.12, "cooldown": 2.5, "range": 420.0, "projectile_speed": 185.0, "telegraph": 0.9, "loot": [18, 6, 8, 1], "color": Color("ce856e")},
+	"guardian": {"name": "Искажённый страж", "hp": 520.0, "speed": 130.0, "damage": 22.0, "radius": 37.0, "armor": 0.12, "cooldown": 1.35, "range": 460.0, "projectile_speed": 225.0, "telegraph": 0.9, "loot": [18, 6, 8, 1], "color": Color("ce856e")},
 }
 
 const MISSIONS: Array = [
@@ -46,15 +49,6 @@ const MODULES: Dictionary = {
 	"regeneration": {"name": "Генетический инкубатор", "description": "+5 здоровья и +0,025 HP/с за стадию. Лечение начинается через 5 с без урона.", "max_level": 4, "costs": [[20, 4, 3, 0], [35, 8, 6, 1], [55, 12, 10, 1], [80, 18, 18, 2]], "color": Color("c28bda")},
 	"storage": {"name": "Питающая камера", "description": "Оживляет сосуды хранилища. +8 к радиусу подбора за стадию.", "max_level": 4, "costs": [[16, 4, 2, 0], [28, 8, 5, 0], [45, 12, 9, 1], [65, 20, 15, 2]], "color": Color("98cf8b")},
 }
-
-const MUTATIONS: Array = [
-	{"id": "chain", "name": "Цепной биоразряд", "description": "Импульс перескакивает на соседнюю цель.", "color": Color("7bd6e3")},
-	{"id": "multishot", "name": "Раздвоенный импульс", "description": "Дополнительный снаряд веером при каждом выстреле.", "color": Color("c9a0e8")},
-	{"id": "armor", "name": "Хитиновая мембрана", "description": "Входящий урон уменьшен на 20%.", "color": Color("dfb47d")},
-	{"id": "regen", "name": "Живая кровь", "description": "+0,3 здоровья в секунду после 5 с без урона. Получение урона прерывает лечение.", "color": Color("a2d786")},
-	{"id": "speed", "name": "Нервный всплеск", "description": "Скорость передвижения повышена на 18%.", "color": Color("df9dcb")},
-	{"id": "magnet", "name": "Голодные рецепторы", "description": "Радиус подбора ресурсов увеличен в 1,8 раза.", "color": Color("87d5bf")},
-]
 
 static func upgrade_cost(id: String, level: int) -> Array:
 	if not UPGRADES.has(id) or level < 0 or level >= int(UPGRADES[id]["max_level"]):
