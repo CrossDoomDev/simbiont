@@ -28,6 +28,7 @@ var status_label: Label
 var hint_label: Label
 var interact_button: Button
 var touch: Control
+var skill_bar: Control
 var page := ""
 var toast_time := 0.0
 var automatic_touch := false
@@ -47,6 +48,7 @@ var layout_dirty := true
 var toolbar_button: Button
 var last_layout_size := Vector2.ZERO
 var last_touch_layout := false
+var last_layout_mode := ""
 var regular: Font = preload("res://assets/fonts/regular.tres")
 var bold: Font = preload("res://assets/fonts/semibold.tres")
 var display: Font = preload("res://assets/fonts/display.tres")
@@ -220,6 +222,9 @@ func _build_hud() -> void:
 	touch = load("res://scripts/touch.gd").new()
 	touch.game = game
 	hud.add_child(touch)
+	skill_bar = preload("res://scripts/skill_bar.gd").new()
+	skill_bar.game = game
+	hud.add_child(skill_bar)
 
 func _layout() -> void:
 	var view: Vector2 = root.size
@@ -232,10 +237,10 @@ func _layout() -> void:
 	var compact: bool = view.y < 520
 	status_label.visible = not compact
 	hp_panel.size = Vector2(228 if view.x < 900 else 278, 88)
-	hp_panel.position = Vector2(edge, 128 if touch.visible and compact else view.y - (280 if touch.visible else 100))
+	hp_panel.position = Vector2(edge, 128 if game.mode == "mission" or (touch.visible and compact) else view.y - (280 if touch.visible else 100))
 	task_panel.size = Vector2(250 if view.x < 900 else 330, 94 if compact else 136)
 	task_panel.position = Vector2(view.x - edge - task_panel.size.x, 128)
-	hint_label.visible = not touch.visible and view.x >= 1100 and view.y >= 600
+	hint_label.visible = game.mode == "ship" and not touch.visible and view.x >= 1100 and view.y >= 600
 	hint_label.position = Vector2((view.x - 610) * 0.5, view.y - 52)
 	hint_label.size = Vector2(610,30)
 	var action_width: float = view.x - (372.0 if touch.visible and view.x < 900 else edge * 2.0)
@@ -243,13 +248,15 @@ func _layout() -> void:
 	interact_button.position = Vector2((view.x - interact_button.size.x) * 0.5, view.y - 125)
 	minimap.size = Vector2(180,148)
 	minimap.position = Vector2(view.x - edge - minimap.size.x, view.y - (368 if touch.visible else 190))
-	minimap.set_meta("compact_hidden", compact)
+	minimap.set_meta("compact_hidden", compact or (game.mode == "mission" and view.x < 1100))
 	toast_label.position = Vector2(edge + 12, 97)
 	toast_label.size = Vector2(view.x - edge * 2 - 24, 52)
 	touch.layout_for_view(view)
+	skill_bar.layout_for_view(view,touch)
 	_fit_overlay()
 	last_layout_size = view
 	last_touch_layout = touch.visible
+	last_layout_mode = game.mode
 
 func _fit_overlay() -> void:
 	if not is_instance_valid(overlay_panel) or not is_instance_valid(overlay_content):
@@ -307,7 +314,7 @@ func _process(delta: float) -> void:
 		interact_button.text = "E   " + str(game.near_organ.get_meta("label"))
 	touch.visible = (automatic_touch or bool(Progress.settings.get("touch",false))) and not game.modal
 	_update_battle_cursor()
-	if layout_dirty or last_layout_size != root.size or last_touch_layout != touch.visible:
+	if layout_dirty or last_layout_size != root.size or last_touch_layout != touch.visible or last_layout_mode != game.mode:
 		layout_dirty = false
 		_layout()
 	toast_time -= delta

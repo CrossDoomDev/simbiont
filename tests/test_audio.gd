@@ -108,6 +108,14 @@ func _run() -> void:
 	audio.play_sfx("shoot")
 	var effect: Dictionary = await _measure(0.15)
 	check(effect.peak > 0.02, "action effects remain audible independently of muted music")
+	for skill_sound: String in ["skill_wave","skill_spores","skill_shield","skill_dash","skill_rupture"]:
+		for voice: AudioStreamPlayer in audio._effects_players:
+			voice.stop()
+		await create_timer(0.03).timeout
+		capture.clear_buffer()
+		audio.play_sfx(skill_sound)
+		var sample: Dictionary = await _measure(0.18)
+		check(sample.peak > 0.02 and sample.peak < 0.95, skill_sound+" is audible with headroom through actual mixer")
 	progress.settings = original_settings
 	audio.update_volumes()
 	check(progress.save_path == original_path, "mixer tests preserve the user's save path and never write a profile")

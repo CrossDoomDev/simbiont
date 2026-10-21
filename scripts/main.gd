@@ -4,6 +4,7 @@ var world: BioWorld
 var player: BioActor
 var camera: Camera2D
 var ui: CanvasLayer
+var skills: SymbioteSkills
 var near_organ: Node2D
 var mode := "ship"
 var modal := false
@@ -31,6 +32,9 @@ func _ready() -> void:
 	if "--capture" in OS.get_cmdline_user_args() or "--runtime-test" in OS.get_cmdline_user_args() or "--audio-test" in OS.get_cmdline_user_args():
 		Progress.save_path = "user://symbiont_verification.json"
 		Progress._defaults()
+	skills = preload("res://scripts/skills.gd").new()
+	skills.game = self
+	add_child(skills)
 	_setup_world("ship")
 	ui = load("res://scripts/ui.gd").new()
 	ui.game = self
@@ -50,6 +54,8 @@ func _ready() -> void:
 		call_deferred("runtime_test")
 
 func _setup_world(context: String) -> void:
+	if is_instance_valid(skills):
+		skills.reset()
 	if is_instance_valid(world):
 		remove_child(world)
 		world.queue_free()
@@ -99,6 +105,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 		elif event.physical_keycode == KEY_E and not modal:
 			interact()
+		elif event.physical_keycode in [KEY_1,KEY_2,KEY_3,KEY_4] and not modal and mode == "mission":
+			cast_skill(int(event.physical_keycode)-KEY_1)
+			get_viewport().set_input_as_handled()
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT and not modal and mode == "mission":
+		cast_skill(4)
+		get_viewport().set_input_as_handled()
 	if event is InputEventMouseMotion:
 		recent_mouse = 2.0
 
@@ -112,7 +124,7 @@ func _physics_process(delta: float) -> void:
 	if ui.touch.visible and ui.touch.left_value.length_squared()>0.01:
 		movement = ui.touch.left_value
 	player.move_input = movement
-	player.manual_fire = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+	player.manual_fire = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not ui.skill_bar.pointer_inside()
 	player.manual_aim = Vector2.ZERO
 	if player.manual_fire:
 		player.manual_aim = get_global_mouse_position()-player.global_position
@@ -138,6 +150,18 @@ func _physics_process(delta: float) -> void:
 			for i in amount:
 				_spawn_wave_enemy()
 		_release_nest_enemies()
+
+func cast_skill(index: int, from_bar: bool = false) -> bool:
+	var target: Vector2 = get_global_mouse_position()
+	if from_bar or ui.touch.visible:
+		target = player.global_position + player.aim * 180.0
+	return skills.cast(index,target)
+
+func gain_combat_energy(actual_damage: float, killed: bool) -> void:
+	skills.gain_damage(actual_damage,killed)
+
+func absorb_host_damage(amount: float) -> float:
+	return skills.absorb_damage(amount)
 
 func set_modal(value: bool) -> void:
 	modal = value

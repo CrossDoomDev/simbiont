@@ -1,0 +1,13 @@
+{
+  "prompt": "Create a production-ready transparent sprite animation sheet for a top-down 2D alien symbiote action game. STRICT layout: EXACTLY 4 columns and EXACTLY 5 rows, 20 separate equal-size grid cells, portrait 4:5 aspect ratio, full image filled with this regular grid. No labels, no text, no numbers, no borders or background. Generous transparent padding inside each cell and no overlap between cells. Each row is ONE magical organic effect in FOUR sequential frames from left to right: seed, expansion, peak, dissipation. Align each effect on the same center in all four frames. Pixel-art-inspired painted sprites, sharp readable silhouettes, black-purple organic membranes, bioluminescent veins, high contrast, consistent with a dark biomechanical symbiote game. ROW 1: mint green circular neural shockwave, expanding ring of living thorns, seen from directly above. ROW 2: violet and lime acid spore bloom, a dense toxic organic cloud with glowing spore particles, directly overhead. ROW 3: amber and pink chitin carapace defensive shield, a circular segmented ribbed organic membrane enclosing an empty transparent center. ROW 4: cyan and purple organic tendril lance extending toward the RIGHT, horizontal directional whip attack with luminous tip; all four cells point right. ROW 5: powerful magenta and white synaptic rupture nova, radial mass of organic tendrils and electric bioluminescent energy exploding outward, top-down. Every cell contains only its own effect on transparent background. These are ANIMATION FRAMES not UI icons, keep each effect coherently shaped across its four frames.",
+  "rows": [
+    "neural_wave",
+    "spores",
+    "chitin_shield",
+    "tendril_dash",
+    "synaptic_rupture"
+  ],
+  "columns": 4,
+  "source": "image_gen",
+  "transparent": true
+}

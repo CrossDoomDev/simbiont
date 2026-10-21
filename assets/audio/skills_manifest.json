@@ -1,0 +1,32 @@
+{
+  "generator": "tools/generate_skill_audio.py",
+  "rate": 44100,
+  "original_synthesis": true,
+  "files": [
+    {
+      "file": "skill_wave.wav",
+      "duration": 0.4,
+      "sha256": "b083a33e936980c0579776eaf8228e46c7fdd8488ccf7deda4d7df4bcd36ef54"
+    },
+    {
+      "file": "skill_spores.wav",
+      "duration": 0.7,
+      "sha256": "22951d7ad1d4ee44035de344e59e8bad00bba70ca229e50a90b7066fbae19cd3"
+    },
+    {
+      "file": "skill_shield.wav",
+      "duration": 0.8,
+      "sha256": "d2d71f3fb617e7dac9c26c464ea0d3b4a1d85b50e47888a4d4520b53f6e6098e"
+    },
+    {
+      "file": "skill_dash.wav",
+      "duration": 0.3,
+      "sha256": "4c6da75a5e9048615dc0f64cfa63c7d9db48624b68ab17a30766665e7e8c7a07"
+    },
+    {
+      "file": "skill_rupture.wav",
+      "duration": 0.85,
+      "sha256": "6f5dd38ad755ee1d3683e0ea426f6a2867f7baec3a89f8439b65a1def1043a63"
+    }
+  ]
+}

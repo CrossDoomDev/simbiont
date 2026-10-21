@@ -21,3 +21,16 @@ for name,config in manifest["sheets"].items():
                 checked+=1
     print(name,im.size,im.getchannel("A").getextrema())
 print("ART_VALIDATION_OK",checked,"populated native atlas cells")
+
+# Generated skill sheet uses 4 x 5 equal grid partitions, including odd edges.
+skills=Image.open(art / "skills/effects.png").convert("RGBA")
+assert skills.getchannel("A").getextrema()==(0,255), "skill effect alpha"
+for row in range(5):
+    previous=None
+    for col in range(4):
+        frame=skills.crop((col*skills.width//4,row*skills.height//5,(col+1)*skills.width//4,(row+1)*skills.height//5))
+        assert frame.getchannel("A").getbbox(), ("empty skill frame",row,col)
+        digest=frame.tobytes()
+        assert previous != digest, ("duplicate skill animation frame",row,col)
+        previous=digest
+print("SKILL_ART_OK: 20 nonempty generated animation frames with transparency")

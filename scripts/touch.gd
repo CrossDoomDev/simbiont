@@ -48,6 +48,8 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var point: Vector2 = get_global_transform_with_canvas().affine_inverse() * event.position
 		if event.pressed and not event.canceled:
+			if is_instance_valid(game.ui.skill_bar) and game.ui.skill_bar.is_visible_in_tree() and game.ui.skill_bar.get_global_rect().has_point(event.position):
+				return
 			if event.index == left_id or event.index == right_id:
 				return
 			if point.distance_to(left_center)<radius*1.8 and left_id<0:

@@ -2,7 +2,7 @@ extends Node
 ## Original synthesized music and effects. Remains active while gameplay is paused.
 
 const AUDIO_DIRECTORY: String = "res://assets/audio/"
-const EFFECTS: Array[String] = ["shoot", "hit", "hurt", "enemy_die", "pickup", "ui", "organ", "upgrade", "objective", "success", "boss", "death"]
+const EFFECTS: Array[String] = ["shoot", "hit", "hurt", "enemy_die", "pickup", "ui", "organ", "upgrade", "objective", "success", "boss", "death", "skill_wave", "skill_spores", "skill_shield", "skill_dash", "skill_rupture"]
 const ALIASES: Dictionary = {"click": "ui", "enemy_death": "enemy_die", "damage": "hurt", "loot": "pickup", "buy": "upgrade", "win": "success", "lose": "death", "node": "objective"}
 const MUSIC_STREAMS: Dictionary = {"hub": "hub", "mission": "mission", "boss": "boss_music"}
 # Music was attenuated twice: quiet sub-bass WAVs and another 0.78 mix gain.

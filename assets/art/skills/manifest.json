@@ -1,0 +1,21 @@
+{
+  "generator": "image_gen",
+  "source": "assets/source/skills/effects-generated.png",
+  "prompt": "assets/source/skills/prompt.json",
+  "sha256": "fd3ddef0ba89cef66215cd3d3e5dc207077092fe3a96ea12006f65cfe070a7e1",
+  "size": [
+    1122,
+    1402
+  ],
+  "columns": 4,
+  "rows": [
+    "neural_wave",
+    "spores",
+    "chitin_shield",
+    "predatory_dash",
+    "synaptic_rupture"
+  ],
+  "frames_per_skill": 4,
+  "native_resource": "assets/animations/skills.tres",
+  "rebuild": "godot --headless --path . --script res://tools/bake_skill_frames.gd -- --rebuild-skills"
+}

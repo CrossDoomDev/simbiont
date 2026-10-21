@@ -32,7 +32,11 @@ func _physics_process(delta: float) -> void:
 	if not collision.is_empty():
 		var target: Node2D = collision["collider"] as Node2D
 		if is_instance_valid(target) and target.has_method("take_damage") and not bool(target.get("dead")):
+			var before_hp: float = float(target.get("hp"))
 			target.take_damage(damage)
+			if not hostile and game.has_method("gain_combat_energy"):
+				var actual_damage: float = maxf(0.0,before_hp-maxf(0.0,float(target.get("hp"))))
+				game.gain_combat_energy(actual_damage,bool(target.get("dead")))
 		game.burst(collision["position"], Color("f56b8b") if hostile else Color("91f0a2"), 4)
 		queue_free()
 		return

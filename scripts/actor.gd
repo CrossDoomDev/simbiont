@@ -12,6 +12,8 @@ var damage := 10.0
 var armor := 0.0
 var invulnerable := 0.0
 var cooldown := 0.0
+var skill_slow_remaining := 0.0
+var skill_slow_ratio := 1.0
 const HOST_ATTACK_HOLD := 1.0
 var attack_pose_remaining := 0.0
 var shot_clock := 0.0
@@ -145,11 +147,15 @@ func _physics_process(delta: float) -> void:
 	cooldown = maxf(0.0, cooldown - delta)
 	shot_clock = maxf(0.0, shot_clock - delta)
 	attack_pose_remaining = maxf(0.0, attack_pose_remaining - delta)
+	skill_slow_remaining = maxf(0.0,skill_slow_remaining-delta)
+	if skill_slow_remaining <= 0:
+		skill_slow_ratio = 1.0
 	_contact_clock = maxf(0.0, _contact_clock - delta)
 	if kind == "host":
 		_host_tick(delta)
 	else:
 		_enemy_tick(delta)
+		velocity *= skill_slow_ratio
 	move_and_slide()
 	if kind == "host":
 		_update_host_visual(delta)
@@ -390,10 +396,25 @@ func _guardian_tick(delta: float, offset: Vector2) -> void:
 	if cooldown <= 0.0 and offset.length() < attack_range + 150.0:
 		_start_guardian_attack()
 
+func apply_skill_control(duration: float, ratio: float) -> void:
+	# Guardians retain the exact speed/reach announced by their telegraphs.
+	if kind in ["host","guardian"]:
+		return
+	if ratio < skill_slow_ratio or skill_slow_remaining <= 0:
+		skill_slow_ratio = ratio
+		skill_slow_remaining = duration
+	elif is_equal_approx(ratio,skill_slow_ratio):
+		skill_slow_remaining = maxf(skill_slow_remaining,duration)
+
 func take_damage(amount: float) -> void:
 	if dead or invulnerable > 0 or not is_finite(amount) or amount <= 0.0:
 		return
 	var dealt := maxf(1.0, amount * (1.0 - clampf(armor, 0.0, 0.75)))
+	if kind == "host" and game.has_method("absorb_host_damage"):
+		dealt = game.absorb_host_damage(dealt)
+		if dealt <= 0:
+			invulnerable = maxf(invulnerable,0.12)
+			return
 	hp -= dealt
 	game.float_text(global_position + Vector2(0, -30), str(int(ceil(dealt))), Color("fa7a86") if kind == "host" else Color("e9e7ba"))
 	if is_instance_valid(flash):
