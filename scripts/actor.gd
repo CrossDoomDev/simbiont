@@ -21,6 +21,8 @@ var dead := false
 var row := 0
 var radius := 14.0
 var attack_interval := 0.42
+var armed_walk := false
+var armed_walk_material: ShaderMaterial
 var anim: AnimatedSprite2D
 var body_shape: CollisionShape2D
 var flash: Tween
@@ -87,6 +89,10 @@ func _ready() -> void:
 		anim.sprite_frames = load(frames_path) as SpriteFrames
 	else:
 		anim.sprite_frames = create_sprite_frames(sprite_path, kind)
+	if kind == "host":
+		armed_walk_material = ShaderMaterial.new()
+		armed_walk_material.shader = preload("res://assets/shaders/host_armed_walk.gdshader")
+		anim.material = armed_walk_material
 	add_child(anim)
 	if kind == "guardian":
 		anim.scale = Vector2.ONE * 1.8
@@ -149,7 +155,10 @@ func _physics_process(delta: float) -> void:
 	var state := "walk" if velocity.length_squared() > 4 else "idle"
 	if (kind == "host" and game.mode == "mission" and attack_pose_remaining > 0.0) or (kind != "host" and shot_clock > attack_interval - 0.12):
 		state = "attack"
-	anim.play("%s_%d" % [state, facing])
+	armed_walk = kind == "host" and state == "attack" and velocity.length_squared() > 4.0
+	if armed_walk_material != null:
+		armed_walk_material.set_shader_parameter("armed_walk",armed_walk)
+	anim.play("%s_%d" % ["walk" if armed_walk else state, facing])
 	var moving: bool = velocity.length_squared() > 4.0
 	var bob: float = sin(age * (6.0 if moving else 2.4)) * (1.2 if kind == "host" else 1.8)
 	var recoil: float = clampf((shot_clock - attack_interval + 0.09) / 0.09,0.0,1.0) * 1.6 if kind == "host" and attack_pose_remaining > 0.0 else 0.0

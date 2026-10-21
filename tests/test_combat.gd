@@ -58,19 +58,19 @@ func _host_pose_checks() -> void:
 	check(host.anim.animation == "attack_2" and is_equal_approx(host.attack_pose_remaining,1.0), "shot raises arm for one second")
 	host.manual_fire = false
 	host._physics_process(0.30)
-	check(host.anim.animation == "attack_2", "arm stays raised between ordinary shots")
+	check(host.anim.animation == "attack_2" and not host.armed_walk, "stationary arm stays raised between ordinary shots")
 	host.move_input = Vector2.DOWN
 	host._physics_process(0.30)
-	check(host.anim.animation == "attack_2" and host.velocity.y > 0.0, "moving host keeps armed pose without lowering arm")
+	check(host.anim.animation == "walk_2" and host.armed_walk and host.velocity.y > 0.0, "moving host keeps armed pose without lowering arm")
 	host.manual_fire = true
 	host._physics_process(0.01)
 	check(is_equal_approx(host.attack_pose_remaining,1.0), "next shot renews full hold duration")
 	host.manual_fire = false
 	host.manual_aim = Vector2.UP
 	host._physics_process(0.30)
-	check(host.anim.animation == "attack_3", "held pose follows changed aim")
+	check(host.anim.animation == "walk_3" and host.armed_walk, "held running pose follows changed aim")
 	host._physics_process(0.71)
-	check(host.anim.animation == "walk_3", "one second without shots releases running pose")
+	check(host.anim.animation == "walk_3" and not host.armed_walk, "one second without shots releases running pose")
 	host.move_input = Vector2.ZERO
 	host._physics_process(0.01)
 	check(host.anim.animation == "idle_3", "stationary host returns to idle after hold")
